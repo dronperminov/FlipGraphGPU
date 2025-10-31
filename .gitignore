@@ -1,0 +1,5 @@
+*.o
+*.exe
+*.exp
+*.lib
+schemes
