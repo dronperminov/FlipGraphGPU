@@ -57,18 +57,17 @@ __device__ void copyScheme(const Scheme &scheme, Scheme &target) {
 }
 
 __device__ void removeZeroes(Scheme &scheme) {
-    int m = 0;
+    while (scheme.m > 0 && !(scheme.uvw[0][scheme.m - 1] && scheme.uvw[1][scheme.m - 1] && scheme.uvw[2][scheme.m - 1]))
+        scheme.m--;
 
     for (int index = 0; index < scheme.m; index++) {
-        if (scheme.uvw[0][index] && scheme.uvw[1][index] && scheme.uvw[2][index]) {
-            scheme.uvw[0][m] = scheme.uvw[0][index];
-            scheme.uvw[1][m] = scheme.uvw[1][index];
-            scheme.uvw[2][m] = scheme.uvw[2][index];
-            m++;
+        if (!(scheme.uvw[0][index] && scheme.uvw[1][index] && scheme.uvw[2][index])) {
+            scheme.m--;
+            scheme.uvw[0][index] = scheme.uvw[0][scheme.m];
+            scheme.uvw[1][index] = scheme.uvw[1][scheme.m];
+            scheme.uvw[2][index] = scheme.uvw[2][scheme.m];
         }
     }
-
-    scheme.m = m;
 }
 
 __device__ void removeAt(Scheme &scheme, int index) {
