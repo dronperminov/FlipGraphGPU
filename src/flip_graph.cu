@@ -51,16 +51,21 @@ void FlipGraph::optimize() {
 void FlipGraph::run() {
     initialize();
 
-    std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
+    auto startTime = std::chrono::high_resolution_clock::now();
+    std::vector<double> elapsedTimes;
 
     for (int iteration = 0; bestRank > targetRank; iteration++) {
+        auto t1 = std::chrono::high_resolution_clock::now();
         optimize();
-        report(startTime, iteration + 1);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+        elapsedTimes.push_back(duration.count() / 1000.0);
+
+        report(startTime, iteration + 1, elapsedTimes);
     }
 }
 
-void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime, int iteration, int count) {
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime);
+void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes, int count) {
 
     std::vector<int> indices = getSortedIndices(std::min(count, schemesCount));
 
@@ -73,18 +78,21 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
         std::cout << "Best rank was improved to " << bestRank << "! Scheme saved to \"" << savePath << "\"" << std::endl;
     }
 
+    double minTime = *std::min_element(elapsedTimes.begin(), elapsedTimes.end());
+    double maxTime = *std::max_element(elapsedTimes.begin(), elapsedTimes.end());
+    double meanTime = std::accumulate(elapsedTimes.begin(), elapsedTimes.end(), 0.0) / elapsedTimes.size();
+    double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime).count() / 1000.0;
+
     std::cout << "+-----------+-----------+--------+------+------+-------------+" << std::endl;
     std::cout << "|  elapsed  | iteration | run id | best | curr | flips count |" << std::endl;
     std::cout << "+-----------+-----------+--------+------+------+-------------+" << std::endl;
 
     for (int i = 0; i < std::min(count, schemesCount); i++) {
-        if (!validateScheme(schemes[indices[i]])) {
-            std::cout << "invalid scheme" << std::endl;
+        if (!validateScheme(schemes[indices[i]]))
             throw std::runtime_error("Invalid scheme");
-        }
 
         std::cout << "| ";
-        std::cout << std::setw(9) << prettyTime(duration.count() / 1000.0) << " | ";
+        std::cout << std::setw(9) << prettyTime(elapsed) << " | ";
         std::cout << std::setw(9) << iteration << " | ";
         std::cout << std::setw(6) << (indices[i] + 1) << " | ";
         std::cout << std::setw(4) << bestRanks[indices[i]] << " | ";
@@ -95,7 +103,7 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
 
     std::cout << "+-----------+-----------+--------+------+------+-------------+" << std::endl;
     std::cout << "- best rank: " << bestRank << std::endl;
-    std::cout << "- iteration time: " << prettyTime(duration.count() / 1000.0 / iteration) << std::endl;
+    std::cout << "- iteration time (min / max / mean): " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
     std::cout << std::endl;
 }
 
@@ -116,7 +124,7 @@ std::string FlipGraph::prettyTime(double elapsed) const {
     std::stringstream ss;
 
     if (elapsed < 60) {
-        ss << std::setprecision(2) << std::fixed << elapsed << " sec";
+        ss << std::setprecision(3) << std::fixed << elapsed;
     }
     else {
         int seconds = int(elapsed + 0.5);
@@ -182,25 +190,7 @@ __global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, in
     if (idx >= schemesCount)
         return;
 
-    if (n == 5) {
-        // const T u[] = {4225028, 524804, 68450, 10, 26240025, 832, 4194308, 16404, 1024, 864, 10485760, 524824, 262400, 64, 327680, 885610, 29388828, 524288, 27033600, 16777552, 65607, 161796, 656000, 67650, 131204, 68546, 26624, 27033600, 16793616, 65601, 17, 5248005, 16777216, 27033600, 16793936, 7, 75850, 159748, 656320, 4, 844825, 4198404, 30277632, 16384, 70722, 11371360, 16777240, 524289, 65602, 5406720, 541184, 168965, 11338560, 8, 525120, 65610, 26406940, 10250, 159876, 960, 2162688, 10, 169125, 524800, 800, 31488030, 10551360, 524312, 557920, 524292, 895850, 4222980, 2163552, 16777242, 524801, 131076, 994250, 24576, 557600, 2162752, 524314, 16394, 136324, 2163648, 16777220, 16401, 4199428, 136196, 11469760, 16392, 16777217, 262208, 4096};
-        // const T v[] = {68450, 4225028, 524804, 832, 10, 26240025, 1024, 4194308, 16404, 524824, 864, 10485760, 327680, 262400, 64, 524288, 885610, 29388828, 65607, 27033600, 16777552, 67650, 161796, 656000, 26624, 131204, 68546, 65601, 27033600, 16793616, 16777216, 17, 5248005, 7, 27033600, 16793936, 656320, 75850, 159748, 4198404, 4, 844825, 70722, 30277632, 16384, 524289, 11371360, 16777240, 541184, 65602, 5406720, 8, 168965, 11338560, 26406940, 525120, 65610, 960, 10250, 159876, 169125, 2162688, 10, 31488030, 524800, 800, 557920, 10551360, 524312, 4222980, 524292, 895850, 524801, 2163552, 16777242, 24576, 131076, 994250, 524314, 557600, 2162752, 2163648, 16394, 136324, 4199428, 16777220, 16401, 16392, 136196, 11469760, 16777217, 262208, 4096};
-        // const T w[] = {524804, 68450, 4225028, 26240025, 832, 10, 16404, 1024, 4194308, 10485760, 524824, 864, 64, 327680, 262400, 29388828, 524288, 885610, 16777552, 65607, 27033600, 656000, 67650, 161796, 68546, 26624, 131204, 16793616, 65601, 27033600, 5248005, 16777216, 17, 16793936, 7, 27033600, 159748, 656320, 75850, 844825, 4198404, 4, 16384, 70722, 30277632, 16777240, 524289, 11371360, 5406720, 541184, 65602, 11338560, 8, 168965, 65610, 26406940, 525120, 159876, 960, 10250, 10, 169125, 2162688, 800, 31488030, 524800, 524312, 557920, 10551360, 895850, 4222980, 524292, 16777242, 524801, 2163552, 994250, 24576, 131076, 2162752, 524314, 557600, 136324, 2163648, 16394, 16401, 4199428, 16777220, 11469760, 16392, 136196, 16777217, 262208, 4096};
-
-        // schemes[idx].n = n;
-        // schemes[idx].nn = n * n;
-        // schemes[idx].m = 93;
-
-        // for (int index = 0; index < schemes[idx].m; index++) {
-        //     schemes[idx].uvw[0][index] = u[index];
-        //     schemes[idx].uvw[1][index] = v[index];
-        //     schemes[idx].uvw[2][index] = w[index];
-        // }
-    }
-    else {
-        initializeNaive(schemes[idx], n);
-    }
-
+    initializeNaive(schemes[idx], n);
     copyScheme(schemes[idx], schemesBest[idx]);
     curand_init(seed, idx, 0, &states[idx]);
 

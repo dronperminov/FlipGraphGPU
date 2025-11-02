@@ -71,14 +71,15 @@ __device__ void removeZeroes(Scheme &scheme) {
     scheme.m = m;
 }
 
-__device__ void removeAt(Scheme &scheme, int startIndex) {
+__device__ void removeAt(Scheme &scheme, int index) {
     scheme.m--;
 
-    for (int index = startIndex; index < scheme.m; index++) {
-        scheme.uvw[0][index] = scheme.uvw[0][index + 1];
-        scheme.uvw[1][index] = scheme.uvw[1][index + 1];
-        scheme.uvw[2][index] = scheme.uvw[2][index + 1];
-    }
+    if (index == scheme.m)
+        return;
+
+    scheme.uvw[0][index] = scheme.uvw[0][scheme.m];
+    scheme.uvw[1][index] = scheme.uvw[1][scheme.m];
+    scheme.uvw[2][index] = scheme.uvw[2][scheme.m];
 }
 
 __device__ void addTriplet(Scheme &scheme, int i, int j, int k, const T u, const T v, const T w) {

@@ -4,9 +4,9 @@
 #include "flip_graph.cuh"
 
 int main(int argc, char* argv[]) {
-    if (argc < 3 || argc > 7) {
+    if (argc < 3 || argc > 8) {
         std::cout << "Invalid number of arguments (" << (argc - 1) << ")" << std::endl;
-        std::cout << "Usage: ./flip_graph [n] [targetRank] [schemes count = 1024] [max iterations = 10000] [path = schemes] [block size = 16]" << std::endl;
+        std::cout << "Usage: ./flip_graph [n] [targetRank] [schemes count = 1024] [max iterations = 10000] [path = schemes] [block size = 16] [seed = time(0)]" << std::endl;
         return 0;
     }
 
@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
     std::string path = argc > 5 ? argv[5] : "schemes";
     int blockSize = argc > 6 ? atoi(argv[6]) : 32;
     int reduceStart = maxIterations;
-    int seed = 42;//time(0);
+    int seed = argc > 7 ? atoi(argv[7]) : time(0);
 
     int initialRank = n*n*n;
 
@@ -29,11 +29,16 @@ int main(int argc, char* argv[]) {
     std::cout << "- path: " << path << std::endl;
     std::cout << "- block size: " << blockSize << std::endl;
     std::cout << "- seed: " << seed << std::endl;
-    // std::cout << "- reduce probability: " << (reduceProbability * 100) << "%" << std::endl << std::endl;
 
     FlipGraph flipGraph(n, initialRank, targetRank, schemesCount, blockSize, maxIterations, path, reduceStart, seed);
-    flipGraph.run();
 
-    std::cout << "Success!" << std::endl;
+    try {
+        flipGraph.run();
+        std::cout << "Success!" << std::endl;
+    }
+    catch (std::runtime_error e) {
+        std::cout << "Exception: " << e.what() << std::endl;
+    }
+
     return 0;
 }

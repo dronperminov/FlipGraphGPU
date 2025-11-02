@@ -1,20 +1,18 @@
 #pragma once
 
 #include <algorithm>
-#include <cassert>
 #include <chrono>
-#include <cstdint>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include <iomanip>
 #include <iostream>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #include "scheme.cuh"
 #include "random.cuh"
-
 
 class FlipGraph {
     int n;
@@ -44,7 +42,7 @@ public:
 private:
     void initialize();
     void optimize();
-    void report(std::chrono::high_resolution_clock::time_point startTime, int iteration, int count = 5);
+    void report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes, int count = 5);
 
     std::string prettyFlips(int flips) const;
     std::string prettyTime(double elapsed) const;
