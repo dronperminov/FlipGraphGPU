@@ -1,12 +1,12 @@
 #include "scheme.cuh"
 
 __device__ __host__ bool validateEquation(const Scheme &scheme, int i, int j, int k) {
-    int i1 = i / scheme.n;
-    int i2 = i % scheme.n;
-    int j1 = j / scheme.n;
-    int j2 = j % scheme.n;
-    int k1 = k / scheme.n;
-    int k2 = k % scheme.n;
+    int i1 = i / scheme.n[1];
+    int i2 = i % scheme.n[1];
+    int j1 = j / scheme.n[2];
+    int j2 = j % scheme.n[2];
+    int k1 = k / scheme.n[0];
+    int k2 = k % scheme.n[0];
 
     bool target = (i2 == j1) && (i1 == k2) && (j2 == k1);
     bool equation = false;
@@ -20,40 +20,51 @@ __device__ __host__ bool validateEquation(const Scheme &scheme, int i, int j, in
 __device__ __host__ bool validateScheme(const Scheme &scheme) {
     bool valid = true;
 
-    for (int i = 0; i < scheme.nn && valid; i++)
-        for (int j = 0; j < scheme.nn && valid; j++)
-            for (int k = 0; k < scheme.nn && valid; k++)
+    for (int i = 0; i < scheme.nn[0] && valid; i++)
+        for (int j = 0; j < scheme.nn[1] && valid; j++)
+            for (int k = 0; k < scheme.nn[2] && valid; k++)
                 valid &= validateEquation(scheme, i, j, k);
 
     return valid;
 }
 
 /*************************************************** device functions ****************************************************/
-__device__ void initializeNaive(Scheme &scheme, int n) {
-    scheme.n = n;
-    scheme.nn = n * n;
-    scheme.m = n * n * n;
+__device__ void initializeNaive(Scheme &scheme, int n1, int n2, int n3) {
+    scheme.n[0] = n1;
+    scheme.n[1] = n2;
+    scheme.n[2] = n3;
 
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            for (int k = 0; k < n; k++) {
-                int index = (i * n + j) * n + k;
-                scheme.uvw[0][index] |= 1 << (i * n + k);
-                scheme.uvw[1][index] |= 1 << (k * n + j);
-                scheme.uvw[2][index] |= 1 << (j * n + i);
+    scheme.nn[0] = n1 * n2;
+    scheme.nn[1] = n2 * n3;
+    scheme.nn[2] = n3 * n1;
+
+    scheme.m = n1 * n2 * n3;
+
+    for (int i = 0; i < n1; i++) {
+        for (int j = 0; j < n3; j++) {
+            for (int k = 0; k < n2; k++) {
+                int index = (i * n3 + j) * n2 + k;
+                scheme.uvw[0][index] |= T(1) << (i * n2 + k);
+                scheme.uvw[1][index] |= T(1) << (k * n3 + j);
+                scheme.uvw[2][index] |= T(1) << (j * n1 + i);
             }
         }
     }
+
+    if (!validateScheme(scheme))
+        printf("not valid naive scheme\n");
 }
 
 __device__ void copyScheme(const Scheme &scheme, Scheme &target) {
-    target.n = scheme.n;
     target.m = scheme.m;
-    target.nn = scheme.nn;
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) {
+        target.n[i] = scheme.n[i];
+        target.nn[i] = scheme.nn[i];
+
         for (int index = 0; index < scheme.m; index++)
             target.uvw[i][index] = scheme.uvw[i][index];
+    }
 }
 
 __device__ void removeZeroes(Scheme &scheme) {
@@ -364,37 +375,38 @@ __device__ void invertibleMatrixZ2(int n, int *matrix, int *inverse, curandState
     } while (!inverseMatrixZ2(n, matrix, inverse));
 }
 
-__device__ T matmul(const T matrix, int *left, int *right, int n) {
+__device__ T matmul(const T matrix, int *left, int *right, int n1, int n2) {
     int result1[MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
     int result2[MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
 
     #pragma unroll
-    for (int i = 0; i < n * n; i++) {
+    for (int i = 0; i < n1 * n2; i++) {
         result1[i] = 0;
         result2[i] = 0;
     }
 
     #pragma unroll
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n1; i++)
         #pragma unroll
-        for (int j = 0; j < n; j++)
+        for (int j = 0; j < n2; j++)
             #pragma unroll
-            for (int k = 0; k < n; k++)
-                result1[i * n + j] ^= left[i * n + k] && int((matrix >> (k * n + j)) & 1);
+            for (int k = 0; k < n1; k++)
+                result1[i * n2 + j] ^= left[i * n1 + k] && int((matrix >> (k * n2 + j)) & 1);
 
     #pragma unroll
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n1; i++)
         #pragma unroll
-        for (int j = 0; j < n; j++)
+        for (int j = 0; j < n2; j++)
             #pragma unroll
-            for (int k = 0; k < n; k++)
-                result2[i * n + j] ^= result1[i * n + k] && right[k * n + j];
+            for (int k = 0; k < n2; k++)
+                result2[i * n2 + j] ^= result1[i * n2 + k] && right[k * n2 + j];
 
     T result = 0;
 
     #pragma unroll
-    for (int i = 0; i < n * n; i++)
-        result |= result2[i] << i;
+    for (int i = 0; i < n1 * n2; i++)
+        if (result2[i])
+            result |= T(1) << i;
 
     return result;
 }
@@ -501,11 +513,11 @@ __device__ bool trySplit(Scheme &scheme, curandState &state) {
     int j = permutation[1];
     int k = permutation[2];
 
-    T a1 = curand(&state) % (1 << scheme.nn);
+    T a1 = curand(&state) % (T(1) << scheme.nn[i]);
     const T a2 = scheme.uvw[i][index];
 
     while (a1 == a2)
-        a1 = curand(&state) % (1 << scheme.nn);
+        a1 = curand(&state) % (T(1) << scheme.nn[i]);
 
     split(scheme, i, j, k, index, a1);
     return true;
@@ -559,7 +571,9 @@ __device__ bool tryReduce(Scheme &scheme, curandState &state) {
 }
 
 __device__ void expand(Scheme &scheme, int count, curandState &state) {
-    for (int i = 0; i < count && scheme.m < MAX_RANK; i++) {
+    int maxRank = scheme.n[0] * scheme.n[1] * scheme.n[2];
+
+    for (int i = 0; i < count && scheme.m < maxRank; i++) {
         int v = curand(&state) % 3;
 
         if (v == 0) {
@@ -575,33 +589,33 @@ __device__ void expand(Scheme &scheme, int count, curandState &state) {
 }
 
 __device__ void sandwiching(Scheme &scheme, curandState &state) {
-    int u[MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
-    int v[MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
-    int w[MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
+    int u[MAX_MATRIX_ELEMENTS];
+    int v[MAX_MATRIX_ELEMENTS];
+    int w[MAX_MATRIX_ELEMENTS];
 
-    int u1[MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
-    int v1[MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
-    int w1[MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
+    int u1[MAX_MATRIX_ELEMENTS];
+    int v1[MAX_MATRIX_ELEMENTS];
+    int w1[MAX_MATRIX_ELEMENTS];
 
-    invertibleMatrixZ2(scheme.n, u, u1, state);
-    invertibleMatrixZ2(scheme.n, v, v1, state);
-    invertibleMatrixZ2(scheme.n, w, w1, state);
+    invertibleMatrixZ2(scheme.n[0], u, u1, state);
+    invertibleMatrixZ2(scheme.n[1], v, v1, state);
+    invertibleMatrixZ2(scheme.n[2], w, w1, state);
 
     for (int index = 0; index < scheme.m; index++) {
-        scheme.uvw[0][index] = matmul(scheme.uvw[0][index], u, v1, scheme.n);
-        scheme.uvw[1][index] = matmul(scheme.uvw[1][index], v, w1, scheme.n);
-        scheme.uvw[2][index] = matmul(scheme.uvw[2][index], w, u1, scheme.n);
+        scheme.uvw[0][index] = matmul(scheme.uvw[0][index], u, v1, scheme.n[0], scheme.n[1]);
+        scheme.uvw[1][index] = matmul(scheme.uvw[1][index], v, w1, scheme.n[1], scheme.n[2]);
+        scheme.uvw[2][index] = matmul(scheme.uvw[2][index], w, u1, scheme.n[2], scheme.n[0]);
     }
 }
 
 /**************************************************** save *****************************************************/
-void saveMatrix(std::ofstream &f, std::string name, int n, int m, const T *matrix) {
+void saveMatrix(std::ofstream &f, std::string name, int n1, int n2, int m, const T *matrix) {
     f << "    \"" << name << "\": [" << std::endl;
 
     for (int index = 0; index < m; index++) {
         f << "        [";
 
-        for (int i = 0; i < n * n; i++) {
+        for (int i = 0; i < n1 * n2; i++) {
             if (i > 0)
                 f << ", ";
 
@@ -618,15 +632,15 @@ void saveScheme(const Scheme &scheme, const std::string &path) {
     std::ofstream f(path);
 
     f << "{" << std::endl;
-    f << "    \"n\": " << scheme.n << "," << std::endl;
+    f << "    \"n\": [" << scheme.n[0] << ", " << scheme.n[1] << ", " << scheme.n[2] << "]," << std::endl;
     f << "    \"m\": " << scheme.m << "," << std::endl;
     f << "    \"z2\": true," << std::endl;
 
-    saveMatrix(f, "u", scheme.n, scheme.m, scheme.uvw[0]);
+    saveMatrix(f, "u", scheme.n[0], scheme.n[1], scheme.m, scheme.uvw[0]);
     f << "," << std::endl;
-    saveMatrix(f, "v", scheme.n, scheme.m, scheme.uvw[1]);
+    saveMatrix(f, "v", scheme.n[1], scheme.n[2], scheme.m, scheme.uvw[1]);
     f << "," << std::endl;
-    saveMatrix(f, "w", scheme.n, scheme.m, scheme.uvw[2]);
+    saveMatrix(f, "w", scheme.n[2], scheme.n[0], scheme.m, scheme.uvw[2]);
     f << std::endl;
     f << "}" << std::endl;
 

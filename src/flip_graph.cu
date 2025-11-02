@@ -10,8 +10,10 @@
     } while(0)
 
 
-FlipGraph::FlipGraph(int n, int initialRank, int targetRank, int schemesCount, int blockSize, int maxIterations, const std::string &path, int reduceStart, int seed) {
-    this->n = n;
+FlipGraph::FlipGraph(int n1, int n2, int n3, int initialRank, int targetRank, int schemesCount, int blockSize, int maxIterations, const std::string &path, int reduceStart, int seed) {
+    this->n1 = n1;
+    this->n2 = n2;
+    this->n3 = n3;
 
     this->initialRank = initialRank;
     this->targetRank = targetRank;
@@ -22,7 +24,7 @@ FlipGraph::FlipGraph(int n, int initialRank, int targetRank, int schemesCount, i
     this->reduceStart = reduceStart;
 
     this->seed = seed;
-    this->bestRank = n*n*n;
+    this->bestRank = n1*n2*n3;
 
     this->blockSize = blockSize;
     this->numBlocks = (schemesCount + blockSize - 1) / blockSize;
@@ -35,7 +37,7 @@ FlipGraph::FlipGraph(int n, int initialRank, int targetRank, int schemesCount, i
 }
 
 void FlipGraph::initialize() {
-    initializeSchemesKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, n, initialRank, schemesCount, seed);
+    initializeSchemesKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, n1, n2, n3, initialRank, schemesCount, seed);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -66,7 +68,6 @@ void FlipGraph::run() {
 }
 
 void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes, int count) {
-
     std::vector<int> indices = getSortedIndices(std::min(count, schemesCount));
 
     if (bestRanks[indices[0]] < bestRank) {
@@ -143,7 +144,7 @@ std::string FlipGraph::getSavePath(const Scheme &scheme, int iteration, int runI
     std::stringstream ss;
 
     ss << path << "/";
-    ss << "n" << scheme.n;
+    ss << scheme.n[0] << scheme.n[1] << scheme.n[2];
     ss << "_m" << scheme.m;
     ss << "_iteration" << iteration;
     ss << "_run" << runId;
@@ -185,12 +186,12 @@ FlipGraph::~FlipGraph() {
 }
 
 /************************************************************************************ kernels ************************************************************************************/
-__global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int n, int m, int schemesCount, int seed) {
+__global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int n1, int n2, int n3, int m, int schemesCount, int seed) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= schemesCount)
         return;
 
-    initializeNaive(schemes[idx], n);
+    initializeNaive(schemes[idx], n1, n2, n3);
     copyScheme(schemes[idx], schemesBest[idx]);
     curand_init(seed, idx, 0, &states[idx]);
 

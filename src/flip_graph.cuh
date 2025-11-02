@@ -15,7 +15,10 @@
 #include "random.cuh"
 
 class FlipGraph {
-    int n;
+    int n1;
+    int n2;
+    int n3;
+
     int initialRank;
     int targetRank;
     int schemesCount;
@@ -34,7 +37,7 @@ class FlipGraph {
     curandState *states;
     int bestRank;
 public:
-    FlipGraph(int n, int initialRank, int targetRank, int schemesCount, int blockSize, int maxIterations, const std::string &path, int reduceStart, int seed);
+    FlipGraph(int n1, int n2, int n3, int initialRank, int targetRank, int schemesCount, int blockSize, int maxIterations, const std::string &path, int reduceStart, int seed);
 
     void run();
 
@@ -50,5 +53,5 @@ private:
     std::vector<int> getSortedIndices(int count) const;
 };
 
-__global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int n, int m, int schemesCount, int seed);
+__global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int n1, int n2, int n3, int m, int schemesCount, int seed);
 __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, int reduceStart);

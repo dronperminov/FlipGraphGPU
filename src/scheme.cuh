@@ -12,13 +12,14 @@
 
 const int MAX_RANK = 128;
 const int MAX_MATRIX_SIZE = 8;
+const int MAX_MATRIX_ELEMENTS = MAX_MATRIX_SIZE * MAX_MATRIX_SIZE;
 
 typedef uint32_t T;
 
 struct Scheme {
-    int n;
+    int n[3];
+    int nn[3];
     int m;
-    int nn;
     T uvw[3][MAX_RANK];
 };
 
@@ -44,7 +45,7 @@ struct ReduceGaussCandidate {
 __device__ __host__ bool validateEquation(const Scheme &scheme, int i, int j, int k);
 __device__ __host__ bool validateScheme(const Scheme &scheme);
 
-__device__ void initializeNaive(Scheme &scheme, int n);
+__device__ void initializeNaive(Scheme &scheme, int n1, int n2, int n3);
 __device__ void copyScheme(const Scheme &scheme, Scheme &target);
 
 __device__ void removeZeroes(Scheme &scheme);
@@ -59,7 +60,7 @@ __device__ int findXorCombination(const Scheme &scheme, int uvwIndex, int *indic
 __device__ void shellSort(int *indices, const T *values, int n);
 __device__ bool inverseMatrixZ2(int n, int *matrix, int *inverse);
 __device__ void invertibleMatrixZ2(int n, int *matrix, int *inverse, curandState &state);
-__device__ T matmul(const T matrix, int *left, int *right, int n);
+__device__ T matmul(const T matrix, int *left, int *right, int n1, int n2);
 
 /************************************************** operators **************************************************/
 __device__ void flip(Scheme &scheme, int first, int second, int index1, int index2);
@@ -79,5 +80,5 @@ __device__ void expand(Scheme &scheme, int count, curandState &state);
 __device__ void sandwiching(Scheme &scheme, curandState &state);
 
 /**************************************************** save *****************************************************/
-void saveMatrix(std::ofstream &f, std::string name, int n, int m, const T *matrix);
+void saveMatrix(std::ofstream &f, std::string name, int n1, int n2, int m, const T *matrix);
 void saveScheme(const Scheme& scheme, const std::string &path);
