@@ -14,6 +14,8 @@ int main(int argc, char* argv[]) {
     parser.add("--max-iterations", ArgType::Natural, "INT", "number of flips per iterations", "10000");
     parser.add("--path", ArgType::String, "PATH", "number of flips per iterations", "schemes");
     parser.add("--block-size", ArgType::Natural, "INT", "number of cuda threads", "32");
+    parser.add("--project-probability", ArgType::Real, "REAL", "project edge probability", "0.2");
+    parser.add("--extend-probability", ArgType::Real, "REAL", "extend edge probability", "0.2");
     parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
 
     if (!parser.parse(argc, argv))
@@ -27,6 +29,9 @@ int main(int argc, char* argv[]) {
     std::string path = parser.get("--path");
     int blockSize = std::stoi(parser.get("--block-size"));
     int seed = std::stoi(parser.get("--seed"));
+
+    double projectProbability = std::stod(parser.get("--project-probability"));
+    double extendProbability = std::stod(parser.get("--extend-probability"));
 
     if (seed == 0)
         seed = time(0);
@@ -48,9 +53,11 @@ int main(int argc, char* argv[]) {
     std::cout << "- max iterations: " << maxIterations << std::endl;
     std::cout << "- path: " << path << std::endl;
     std::cout << "- block size: " << blockSize << std::endl;
+    std::cout << "- extend probability: " << extendProbability << std::endl;
+    std::cout << "- project probability: " << projectProbability << std::endl;
     std::cout << "- seed: " << seed << std::endl;
 
-    FlipGraph flipGraph(n1, n2, n3, schemesCount, blockSize, maxIterations, path, seed);
+    FlipGraph flipGraph(n1, n2, n3, schemesCount, blockSize, maxIterations, path, extendProbability, projectProbability, seed);
 
     try {
         flipGraph.run();

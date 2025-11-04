@@ -10,7 +10,7 @@
     } while(0)
 
 
-FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, int maxIterations, const std::string &path, int seed) {
+FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, int maxIterations, const std::string &path, double extendProbability, double projectProbability, int seed) {
     this->n1 = n1;
     this->n2 = n2;
     this->n3 = n3;
@@ -18,6 +18,9 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     this->schemesCount = schemesCount;
     this->maxIterations = maxIterations;
     this->path = path;
+
+    this->extendProbability = extendProbability;
+    this->projectProbability = projectProbability;
 
     this->seed = seed;
 
@@ -48,7 +51,7 @@ void FlipGraph::optimize() {
 }
 
 void FlipGraph::projectExpand(int iteration) {
-    projectExpandKernel<<<numBlocks, blockSize>>>(schemes, schemesCount, states);
+    projectExpandKernel<<<numBlocks, blockSize>>>(schemes, schemesCount, states, extendProbability, projectProbability);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -298,7 +301,7 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
     bestRanks[idx] = bestRank;
 }
 
-__global__ void projectExpandKernel(Scheme *schemes, int schemesCount, curandState *states) {
+__global__ void projectExpandKernel(Scheme *schemes, int schemesCount, curandState *states, double extendProbability, double projectProbability) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= schemesCount)
@@ -307,9 +310,9 @@ __global__ void projectExpandKernel(Scheme *schemes, int schemesCount, curandSta
     Scheme &scheme = schemes[idx];
     curandState &state = states[idx];
 
-    if (curand_uniform(&state) < 0.25)
+    if (curand_uniform(&state) < extendProbability)
         tryExtend(scheme, state);
 
-    if (curand_uniform(&state) < 0.4)
+    if (curand_uniform(&state) < projectProbability)
         tryProject(scheme, state);
 }

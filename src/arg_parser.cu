@@ -97,6 +97,11 @@ bool ArgParser::validate(const Arg &arg, const std::string &value) const {
         return false;
     }
 
+    if (arg.type == ArgType::Real && !isReal(value)) {
+        std::cerr << "value for arg \"" << arg.name << "\" is not real (" << value << ")" << std::endl;
+        return false;
+    }
+
     return true;
 }
 
@@ -104,6 +109,27 @@ bool ArgParser::isNatural(const std::string &value) const {
     for (size_t i = 0; i < value.size(); i++)
         if (value[i] < '0' || value[i] > '9')
             return false;
+
+    return true;
+}
+
+bool ArgParser::isReal(const std::string &value) const {
+    if (value.size() == 0)
+        return false;
+
+    size_t start = value[0] == '-' ? 1 : 0;
+    bool point = false;
+
+    for (size_t i = start; i < value.size(); i++) {
+        if (value[i] == '.') {
+            if (point)
+                return false;
+
+            point = true;
+        }
+        else if (value[i] < '0' || value[i] > '9')
+            return false;
+    }
 
     return true;
 }

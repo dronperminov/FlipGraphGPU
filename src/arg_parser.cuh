@@ -6,7 +6,7 @@
 #include <vector>
 
 enum class ArgType {
-    String, Natural
+    String, Natural, Real
 };
 
 struct Arg {
@@ -25,6 +25,7 @@ class ArgParser {
     int required;
 
     bool isNatural(const std::string &value) const;
+    bool isReal(const std::string &value) const;
     bool validate(const Arg &arg, const std::string &value) const;
     bool checkRequired() const;
 public:
