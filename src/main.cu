@@ -1,38 +1,56 @@
 #include <iostream>
 #include <ctime>
 
+#include "arg_parser.cuh"
 #include "flip_graph.cuh"
 
 int main(int argc, char* argv[]) {
-    if (argc < 5 || argc > 10) {
-        std::cout << "Invalid number of arguments (" << (argc - 1) << ")" << std::endl;
-        std::cout << "Usage: ./flip_graph [n1] [n2] [n3] [targetRank] [schemes count = 1024] [max iterations = 10000] [path = schemes] [block size = 16] [seed = time(0)]" << std::endl;
+    ArgParser parser("flip_graph", "Find fast matrix multiplication in parallel using CUDA");
+
+    parser.add("-n1", ArgType::Natural, "INT", "number of first matrix rows");
+    parser.add("-n2", ArgType::Natural, "INT", "number of first matrix columns and second matrix rows");
+    parser.add("-n3", ArgType::Natural, "INT", "number of second matrix columns");
+    parser.add("--schemes", ArgType::Natural, "INT", "number of schemes", "1024");
+    parser.add("--max-iterations", ArgType::Natural, "INT", "number of flips per iterations", "10000");
+    parser.add("--path", ArgType::String, "PATH", "number of flips per iterations", "schemes");
+    parser.add("--block-size", ArgType::Natural, "INT", "number of cuda threads", "32");
+    parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
+
+    if (!parser.parse(argc, argv))
+        return 0;
+
+    int n1 = std::stoi(parser.get("-n1"));
+    int n2 = std::stoi(parser.get("-n2"));
+    int n3 = std::stoi(parser.get("-n3"));
+    int schemesCount = std::stoi(parser.get("--schemes"));
+    int maxIterations = std::stoi(parser.get("--max-iterations"));
+    std::string path = parser.get("--path");
+    int blockSize = std::stoi(parser.get("--block-size"));
+    int seed = std::stoi(parser.get("--seed"));
+
+    if (seed == 0)
+        seed = time(0);
+
+    int maxSize = sizeof(T) * 8;
+    if (n1 * n2 > maxSize || n2 * n3 > maxSize || n1 * n3 > maxSize) {
+        std::cout << "Error sizes, please increase bit size of T (now: " << (sizeof(T) * 8) << ")" << std::endl;
         return 0;
     }
 
-    int n1 = atoi(argv[1]);
-    int n2 = atoi(argv[2]);
-    int n3 = atoi(argv[3]);
-    int targetRank = atoi(argv[4]);
-    int schemesCount = argc > 5 ? atoi(argv[5]) : 1024;
-    int maxIterations = argc > 6 ? atoi(argv[6]) : 10000;
-    std::string path = argc > 7 ? argv[7] : "schemes";
-    int blockSize = argc > 8 ? atoi(argv[8]) : 32;
-    int seed = argc > 9 ? atoi(argv[9]) : time(0);
-
-    int reduceStart = maxIterations;
-    int initialRank = n1 * n2 * n3;
+    if (n1 * n2 * n3 > MAX_RANK) {
+        std::cout << "Error sizes, please increase MAX_RANK (now: " << MAX_RANK << ")" << std::endl;
+        return 0;
+    }
 
     std::cout << "Start flip graph algorithm" << std::endl;
     std::cout << "- n: " << n1 << " " << n2 << " " << n3 << std::endl;
-    std::cout << "- target rank: " << targetRank << std::endl;
     std::cout << "- schemes count: " << schemesCount << std::endl;
     std::cout << "- max iterations: " << maxIterations << std::endl;
     std::cout << "- path: " << path << std::endl;
     std::cout << "- block size: " << blockSize << std::endl;
     std::cout << "- seed: " << seed << std::endl;
 
-    FlipGraph flipGraph(n1, n2, n3, initialRank, targetRank, schemesCount, blockSize, maxIterations, path, reduceStart, seed);
+    FlipGraph flipGraph(n1, n2, n3, schemesCount, blockSize, maxIterations, path, seed);
 
     try {
         flipGraph.run();

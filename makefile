@@ -1,6 +1,6 @@
 CXX = nvcc
 FLAGS = -O3 -Xptxas -O3
-OBJECTS = scheme.o flip_graph.o main.o
+OBJECTS = arg_parser.o scheme.o flip_graph.o main.o
 TARGET = flip_graph
 
 all: $(OBJECTS)

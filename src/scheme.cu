@@ -44,9 +44,9 @@ __device__ void initializeNaive(Scheme &scheme, int n1, int n2, int n3) {
         for (int j = 0; j < n3; j++) {
             for (int k = 0; k < n2; k++) {
                 int index = (i * n3 + j) * n2 + k;
-                scheme.uvw[0][index] |= T(1) << (i * n2 + k);
-                scheme.uvw[1][index] |= T(1) << (k * n3 + j);
-                scheme.uvw[2][index] |= T(1) << (j * n1 + i);
+                scheme.uvw[0][index] = T(1) << (i * n2 + k);
+                scheme.uvw[1][index] = T(1) << (k * n3 + j);
+                scheme.uvw[2][index] = T(1) << (j * n1 + i);
             }
         }
     }
@@ -97,6 +97,66 @@ __device__ void addTriplet(Scheme &scheme, int i, int j, int k, const T u, const
     scheme.uvw[j][scheme.m] = v;
     scheme.uvw[k][scheme.m] = w;
     scheme.m++;
+}
+
+__device__ void excludeColumn(Scheme &scheme, int matrix) {
+    int n1 = scheme.n[matrix];
+    int n2 = scheme.n[(matrix + 1) % 3];
+
+    for (int index = 0; index < scheme.m; index++) {
+        T value = 0;
+
+        for (int i = 0; i < n1; i++)
+            for (int j = 0; j < n2 - 1; j++)
+                value |= T((scheme.uvw[matrix][index] >> (i * n2 + j)) & 1) << (i * (n2 - 1) + j);
+
+        scheme.uvw[matrix][index] = value;
+    }
+}
+
+__device__ void excludeRow(Scheme &scheme, int matrix) {
+    int n1 = scheme.n[matrix];
+    int n2 = scheme.n[(matrix + 1) % 3];
+
+    for (int index = 0; index < scheme.m; index++) {
+        T value = 0;
+
+        for (int i = 0; i < n1 - 1; i++)
+            for (int j = 0; j < n2; j++)
+                value |= T((scheme.uvw[matrix][index] >> (i * n2 + j)) & 1) << (i * n2 + j);
+
+        scheme.uvw[matrix][index] = value;
+    }
+}
+
+__device__ void addColumn(Scheme &scheme, int matrix) {
+    int n1 = scheme.n[matrix];
+    int n2 = scheme.n[(matrix + 1) % 3];
+
+    for (int index = 0; index < scheme.m; index++) {
+        T value = 0;
+
+        for (int i = 0; i < n1; i++)
+            for (int j = 0; j < n2; j++)
+                value |= T((scheme.uvw[matrix][index] >> (i * n2 + j)) & 1) << (i * (n2 + 1) + j);
+
+        scheme.uvw[matrix][index] = value;
+    }
+}
+
+__device__ void addRow(Scheme &scheme, int matrix) {
+    int n1 = scheme.n[matrix];
+    int n2 = scheme.n[(matrix + 1) % 3];
+
+    for (int index = 0; index < scheme.m; index++) {
+        T value = 0;
+
+        for (int i = 0; i < n1; i++)
+            for (int j = 0; j < n2; j++)
+                value |= T((scheme.uvw[matrix][index] >> (i * n2 + j)) & 1) << (i * n2 + j);
+
+        scheme.uvw[matrix][index] = value;
+    }
 }
 
 /******************************************************** helpers ********************************************************/
@@ -479,6 +539,55 @@ __device__ void reduce(Scheme &scheme, int i, int index1, int index2) {
         removeZeroes(scheme);
 }
 
+__device__ void project(Scheme &scheme, int p) {
+    excludeRow(scheme, p);
+    excludeColumn(scheme, (p + 2) % 3);
+    scheme.n[p]--;
+
+    for (int i = 0; i < 3; i++)
+        scheme.nn[i] = scheme.n[i] * scheme.n[(i + 1) % 3];
+
+    removeZeroes(scheme);
+
+    if (!validateScheme(scheme))
+        printf("project: invalid scheme");
+}
+
+__device__ void extend(Scheme &scheme, int p) {
+    if (p == 0) {
+        addRow(scheme, 0);
+        addColumn(scheme, 2);
+
+        for (int i = 0; i < scheme.n[2]; i++)
+            for (int j = 0; j < scheme.n[1]; j++)
+                addTriplet(scheme, 0, 1, 2, T(1) << (scheme.n[0] * scheme.n[1] + j), T(1) << (j * scheme.n[2] + i), T(1) << (i * (scheme.n[0] + 1) + scheme.n[0]));
+    }
+    else if (p == 1) {
+        addRow(scheme, 1);
+        addColumn(scheme, 0);
+
+        for (int i = 0; i < scheme.n[0]; i++)
+            for (int j = 0; j < scheme.n[2]; j++)
+                addTriplet(scheme, 0, 1, 2, T(1) << (i * (scheme.n[1] + 1) + scheme.n[1]), T(1) << (scheme.n[1] * scheme.n[2] + j), T(1) << (j * scheme.n[0] + i));
+    }
+    else {
+        addRow(scheme, 2);
+        addColumn(scheme, 1);
+
+        for (int i = 0; i < scheme.n[0]; i++)
+            for (int j = 0; j < scheme.n[1]; j++)
+                addTriplet(scheme, 0, 1, 2, T(1) << (i * scheme.n[1] + j), T(1) << (j * (scheme.n[2] + 1) + scheme.n[2]), T(1) << (scheme.n[2] * scheme.n[0] + i));
+    }
+
+    scheme.n[p]++;
+
+    for (int i = 0; i < 3; i++)
+        scheme.nn[i] = scheme.n[i] * scheme.n[(i + 1) % 3];
+
+    if (!validateScheme(scheme))
+        printf("extend: invalid scheme %d (%d, %d, %d)\n", p, scheme.n[0], scheme.n[1], scheme.n[2]);
+}
+
 /*************************************************** random operators ****************************************************/
 __device__ bool tryPlus(Scheme &scheme, curandState &state) {
     if (scheme.m >= MAX_RANK)
@@ -567,6 +676,59 @@ __device__ bool tryReduce(Scheme &scheme, curandState &state) {
         return false;
 
     reduce(scheme, possibleReduce.i, possibleReduce.index1, possibleReduce.index2);
+    return true;
+}
+
+__device__ bool tryProject(Scheme &scheme, curandState &state) {
+    int indices[3];
+    int size = 0;
+
+    if (scheme.n[0] > 2)
+        indices[size++] = 0;
+
+    if (scheme.n[1] > scheme.n[0])
+        indices[size++] = 1;
+
+    if (scheme.n[2] > scheme.n[1])
+        indices[size++] = 2;
+
+    if (size == 0)
+        return false;
+
+    project(scheme, indices[curand(&state) % size]);
+
+    while (tryReduce(scheme, state))
+        ;
+
+    return true;
+}
+
+__device__ bool tryExtend(Scheme &scheme, curandState &state) {
+    int indices[3];
+    int size = 0;
+
+    int maxSize = sizeof(T) * 8;
+    int n0 = scheme.n[0] + 1;
+    int n1 = scheme.n[1] + 1;
+    int n2 = scheme.n[2] + 1;
+
+    if (scheme.n[2] < 5 && n2 * scheme.n[0] <= maxSize && n2 * scheme.n[1] <= maxSize && scheme.m + scheme.n[0] * scheme.n[1] <= MAX_RANK)
+        indices[size++] = 2;
+
+    if (scheme.n[1] < scheme.n[2] && scheme.n[1] < 5 && n1 * scheme.n[0] <= maxSize && n1 * scheme.n[2] <= maxSize && scheme.m + scheme.n[0] * scheme.n[2] <= MAX_RANK)
+        indices[size++] = 1;
+
+    if (scheme.n[0] < scheme.n[1] && scheme.n[0] < 5 && n0 * scheme.n[1] <= maxSize && n0 * scheme.n[2] <= maxSize && scheme.m + scheme.n[1] * scheme.n[2] <= MAX_RANK)
+        indices[size++] = 0;
+
+    if (size == 0)
+        return false;
+
+    extend(scheme, indices[curand(&state) % size]);
+
+    while (tryReduce(scheme, state))
+        ;
+
     return true;
 }
 

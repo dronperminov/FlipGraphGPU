@@ -10,8 +10,8 @@
 
 #include "random.cuh"
 
-const int MAX_RANK = 128;
-const int MAX_MATRIX_SIZE = 8;
+const int MAX_RANK = 150;
+const int MAX_MATRIX_SIZE = 7;
 const int MAX_MATRIX_ELEMENTS = MAX_MATRIX_SIZE * MAX_MATRIX_SIZE;
 
 typedef uint32_t T;
@@ -52,6 +52,11 @@ __device__ void removeZeroes(Scheme &scheme);
 __device__ void removeAt(Scheme &scheme, int startIndex);
 __device__ void addTriplet(Scheme &scheme, int i, int j, int k, const T u, const T v, const T w);
 
+__device__ void excludeColumn(Scheme &scheme, int matrix);
+__device__ void excludeRow(Scheme &scheme, int matrix);
+__device__ void addColumn(Scheme &scheme, int matrix);
+__device__ void addRow(Scheme &scheme, int matrix);
+
 /*************************************************** helpers ***************************************************/
 __device__ FlipCandidate getFlipCandidate(const Scheme &scheme, curandState &state);
 __device__ ReduceCandidate getReduceCandidate(const Scheme &scheme, curandState &state);
@@ -68,6 +73,8 @@ __device__ void plus(Scheme &scheme, int i, int j, int k, int index1, int index2
 __device__ void split(Scheme &scheme, int i, int j, int k, int index, const T a1);
 __device__ void reduceGauss(Scheme &scheme, int i, int *combination, int combinationSize);
 __device__ void reduce(Scheme &scheme, int i, int index1, int index2);
+__device__ void project(Scheme &scheme, int p);
+__device__ void extend(Scheme &scheme, int p);
 
 /********************************************** random operators ***********************************************/
 __device__ bool tryPlus(Scheme &scheme, curandState &state);
@@ -76,6 +83,8 @@ __device__ bool trySplit(Scheme &scheme, curandState &state);
 __device__ bool trySplitExisted(Scheme &scheme, curandState &state);
 __device__ bool tryReduceGauss(Scheme &scheme, curandState &state);
 __device__ bool tryReduce(Scheme &scheme, curandState &state);
+__device__ bool tryProject(Scheme &scheme, curandState &state);
+__device__ bool tryExtend(Scheme &scheme, curandState &state);
 __device__ void expand(Scheme &scheme, int count, curandState &state);
 __device__ void sandwiching(Scheme &scheme, curandState &state);
 

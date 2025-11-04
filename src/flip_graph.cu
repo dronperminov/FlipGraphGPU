@@ -10,24 +10,21 @@
     } while(0)
 
 
-FlipGraph::FlipGraph(int n1, int n2, int n3, int initialRank, int targetRank, int schemesCount, int blockSize, int maxIterations, const std::string &path, int reduceStart, int seed) {
+FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, int maxIterations, const std::string &path, int seed) {
     this->n1 = n1;
     this->n2 = n2;
     this->n3 = n3;
 
-    this->initialRank = initialRank;
-    this->targetRank = targetRank;
-
     this->schemesCount = schemesCount;
     this->maxIterations = maxIterations;
     this->path = path;
-    this->reduceStart = reduceStart;
 
     this->seed = seed;
-    this->bestRank = n1*n2*n3;
 
     this->blockSize = blockSize;
     this->numBlocks = (schemesCount + blockSize - 1) / blockSize;
+
+    n2bestRank[getKey(n1, n2, n3)] = n1 * n2 * n3;
 
     CUDA_CHECK(cudaMallocManaged(&schemes, schemesCount * sizeof(Scheme)));
     CUDA_CHECK(cudaMallocManaged(&schemesBest, schemesCount * sizeof(Scheme)));
@@ -37,17 +34,49 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int initialRank, int targetRank, in
 }
 
 void FlipGraph::initialize() {
-    initializeSchemesKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, n1, n2, n3, initialRank, schemesCount, seed);
+    initializeSchemesKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, n1, n2, n3, schemesCount, seed);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 void FlipGraph::optimize() {
-    randomWalkKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, schemesCount, maxIterations, reduceStart);
+    randomWalkKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, schemesCount, maxIterations);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+void FlipGraph::projectExpand(int iteration) {
+    projectExpandKernel<<<numBlocks, blockSize>>>(schemes, schemesCount, states);
+
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    std::vector<std::string> keys(schemesCount);
+    std::unordered_map<std::string, int> n2bestIndex;
+
+    for (int i = 0; i < schemesCount; i++) {
+        keys[i] = getKey(schemes[i]);
+
+        auto result = n2bestRank.find(keys[i]);
+        if (result == n2bestRank.end() || schemes[i].m < result->second) {
+            n2bestRank[keys[i]] = schemes[i].m;
+            n2bestIndex[keys[i]] = i;
+        }
+    }
+
+    for (int i = 0; i < schemesCount; i++)
+        bestRanks[i] = n2bestRank[keys[i]];
+
+    for (auto pair : n2bestIndex) {
+        std::string savePath = getSavePath(schemes[pair.second], iteration, pair.second);
+        saveScheme(schemes[pair.second], savePath);
+        std::cout << "Best rank of " << pair.first << " was improved to " << bestRanks[pair.second] << "! Scheme saved to \"" << savePath << "\"" << std::endl;
+    }
+
+    if (n2bestIndex.size())
+        std::cout << std::endl;
 }
 
 void FlipGraph::run() {
@@ -56,7 +85,7 @@ void FlipGraph::run() {
     auto startTime = std::chrono::high_resolution_clock::now();
     std::vector<double> elapsedTimes;
 
-    for (int iteration = 0; bestRank > targetRank; iteration++) {
+    for (int iteration = 0; 1; iteration++) {
         auto t1 = std::chrono::high_resolution_clock::now();
         optimize();
         auto t2 = std::chrono::high_resolution_clock::now();
@@ -64,47 +93,60 @@ void FlipGraph::run() {
         elapsedTimes.push_back(duration.count() / 1000.0);
 
         report(startTime, iteration + 1, elapsedTimes);
+        projectExpand(iteration);
     }
 }
 
 void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes, int count) {
-    std::vector<int> indices = getSortedIndices(std::min(count, schemesCount));
-
-    if (bestRanks[indices[0]] < bestRank) {
-        bestRank = bestRanks[indices[0]];
-
-        Scheme best = schemesBest[indices[0]];
-        std::string savePath = getSavePath(best, iteration, indices[0]);
-        saveScheme(best, savePath);
-        std::cout << "Best rank was improved to " << bestRank << "! Scheme saved to \"" << savePath << "\"" << std::endl;
-    }
-
+    double lastTime = elapsedTimes[elapsedTimes.size() - 1];
     double minTime = *std::min_element(elapsedTimes.begin(), elapsedTimes.end());
     double maxTime = *std::max_element(elapsedTimes.begin(), elapsedTimes.end());
     double meanTime = std::accumulate(elapsedTimes.begin(), elapsedTimes.end(), 0.0) / elapsedTimes.size();
     double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime).count() / 1000.0;
 
-    std::cout << "+-----------+-----------+--------+------+------+-------------+" << std::endl;
-    std::cout << "|  elapsed  | iteration | run id | best | curr | flips count |" << std::endl;
-    std::cout << "+-----------+-----------+--------+------+------+-------------+" << std::endl;
+    std::unordered_map<std::string, std::vector<int>> n2indices = getSortedIndices(std::min(count, schemesCount));
 
-    for (int i = 0; i < std::min(count, schemesCount); i++) {
-        if (!validateScheme(schemes[indices[i]]))
-            throw std::runtime_error("Invalid scheme");
+    for (auto const &pair : n2indices) {
+        const std::string &n = pair.first;
+        int index = pair.second[0];
 
-        std::cout << "| ";
-        std::cout << std::setw(9) << prettyTime(elapsed) << " | ";
-        std::cout << std::setw(9) << iteration << " | ";
-        std::cout << std::setw(6) << (indices[i] + 1) << " | ";
-        std::cout << std::setw(4) << bestRanks[indices[i]] << " | ";
-        std::cout << std::setw(4) << schemes[indices[i]].m << " | ";
-        std::cout << std::setw(11) << prettyFlips(flips[indices[i]]) << " |";
-        std::cout << std::endl;
+        if (bestRanks[index] < n2bestRank[n]) {
+            std::string savePath = getSavePath(schemesBest[index], iteration, index);
+            saveScheme(schemesBest[index], savePath);
+
+            std::cout << "Best rank of " << n << " was improved from " << n2bestRank[n] << " to " << bestRanks[index] << "! Scheme saved to \"" << savePath << "\"" << std::endl;
+            n2bestRank[n] = bestRanks[index];
+        }
     }
 
-    std::cout << "+-----------+-----------+--------+------+------+-------------+" << std::endl;
-    std::cout << "- best rank: " << bestRank << std::endl;
-    std::cout << "- iteration time (min / max / mean): " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
+    std::cout << "+-----------+-----------+--------+------+------+------+-------------+" << std::endl;
+    std::cout << "|  elapsed  | iteration | run id | size | best | curr | flips count |" << std::endl;
+    std::cout << "+-----------+-----------+--------+------+------+------+-------------+" << std::endl;
+
+    for (auto const &pair : n2indices) {
+        const std::vector<int> &indices = pair.second;
+
+        for (int i = 0; i < count && i < indices.size(); i++) {
+            Scheme &scheme = schemes[indices[i]];
+
+            if (!validateScheme(scheme))
+                throw std::runtime_error("Invalid scheme");
+
+            std::cout << "| ";
+            std::cout << std::setw(9) << prettyTime(elapsed) << " | ";
+            std::cout << std::setw(9) << iteration << " | ";
+            std::cout << std::setw(6) << (indices[i] + 1) << " | ";
+            std::cout << std::setw(4) << pair.first << " | ";
+            std::cout << std::setw(4) << bestRanks[indices[i]] << " | ";
+            std::cout << std::setw(4) << scheme.m << " | ";
+            std::cout << std::setw(11) << prettyFlips(flips[indices[i]]) << " |";
+            std::cout << std::endl;
+        }
+
+        std::cout << "+-----------+-----------+--------+------+------+------+-------------+" << std::endl;
+    }
+
+    std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
     std::cout << std::endl;
 }
 
@@ -153,14 +195,30 @@ std::string FlipGraph::getSavePath(const Scheme &scheme, int iteration, int runI
     return ss.str();
 }
 
-std::vector<int> FlipGraph::getSortedIndices(int count) const {
-    std::vector<int> indices(schemesCount);
+std::string FlipGraph::getKey(int n1, int n2, int n3) const {
+    std::stringstream ss;
+    ss << n1 << n2 << n3;
+    return ss.str();
+}
+
+std::string FlipGraph::getKey(const Scheme &scheme) const {
+    return getKey(scheme.n[0], scheme.n[1], scheme.n[2]);
+}
+
+std::unordered_map<std::string, std::vector<int>> FlipGraph::getSortedIndices(int count) const {
+    std::unordered_map<std::string, std::vector<int>> n2indices;
 
     for (int i = 0; i < schemesCount; i++)
-        indices[i] = i;
+        n2indices[getKey(schemes[i])].push_back(i);
 
-    std::partial_sort(indices.begin(), indices.begin() + count, indices.end(), [this](int index1, int index2) { return schemesBest[index1].m < schemesBest[index2].m; });
-    return indices;
+    for (auto pair : n2indices) {
+        if (pair.second.size() < count)
+            count = pair.second.size();
+
+        std::partial_sort(n2indices[pair.first].begin(), n2indices[pair.first].begin() + count, n2indices[pair.first].end(), [this](int index1, int index2) { return schemesBest[index1].m < schemesBest[index2].m; });
+    }
+
+    return n2indices;
 }
 
 FlipGraph::~FlipGraph() {
@@ -186,7 +244,7 @@ FlipGraph::~FlipGraph() {
 }
 
 /************************************************************************************ kernels ************************************************************************************/
-__global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int n1, int n2, int n3, int m, int schemesCount, int seed) {
+__global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int n1, int n2, int n3, int schemesCount, int seed) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= schemesCount)
         return;
@@ -195,12 +253,13 @@ __global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, in
     copyScheme(schemes[idx], schemesBest[idx]);
     curand_init(seed, idx, 0, &states[idx]);
 
-    bestRanks[idx] = m;
+    bestRanks[idx] = n1 * n2 * n3;
     flips[idx] = 0;
 }
 
-__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, int reduceStart) {
+__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
     if (idx >= schemesCount)
         return;
 
@@ -211,7 +270,7 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
 
     for (int iteration = 0; iteration < maxIterations; iteration++) {
         if (!tryFlip(scheme, state)) {
-            expand(scheme, randint(1, 3, state), state);
+            expand(scheme, randint(1, 2, state), state);
             continue;
         }
 
@@ -223,18 +282,34 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
             continue;
         }
 
-        if (flipsCount >= reduceStart && curand_uniform(&state) * maxIterations < 1.0) {
+        if (curand_uniform(&state) * maxIterations < 1.0) {
             tryReduce(scheme, state);
             tryReduceGauss(scheme, state);
         }
 
         if (curand_uniform(&state) * maxIterations < 1.0)
-            expand(scheme, randint(1, 3, state), state);
+            expand(scheme, randint(1, 2, state), state);
 
-        if (curand_uniform(&state) * maxIterations < 0.1)
-            sandwiching(scheme, state);
+        // if (curand_uniform(&state) * maxIterations < 0.1)
+        //     sandwiching(scheme, state);
     }
 
     flips[idx] = flipsCount;
     bestRanks[idx] = bestRank;
+}
+
+__global__ void projectExpandKernel(Scheme *schemes, int schemesCount, curandState *states) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= schemesCount)
+        return;
+
+    Scheme &scheme = schemes[idx];
+    curandState &state = states[idx];
+
+    if (curand_uniform(&state) < 0.25)
+        tryExtend(scheme, state);
+
+    if (curand_uniform(&state) < 0.4)
+        tryProject(scheme, state);
 }
