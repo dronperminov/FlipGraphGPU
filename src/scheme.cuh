@@ -46,14 +46,15 @@ __device__ __host__ bool validateEquation(const Scheme &scheme, int i, int j, in
 __device__ __host__ bool validateScheme(const Scheme &scheme);
 
 __device__ void initializeNaive(Scheme &scheme, int n1, int n2, int n3);
+__device__ void initializeFrom(Scheme &scheme, int n1, int n2, int n3, int m, const T uvw[3][MAX_RANK]);
 __device__ void copyScheme(const Scheme &scheme, Scheme &target);
 
 __device__ void removeZeroes(Scheme &scheme);
 __device__ void removeAt(Scheme &scheme, int startIndex);
 __device__ void addTriplet(Scheme &scheme, int i, int j, int k, const T u, const T v, const T w);
 
-__device__ void excludeColumn(Scheme &scheme, int matrix);
-__device__ void excludeRow(Scheme &scheme, int matrix);
+__device__ void excludeColumn(Scheme &scheme, int matrix, int column);
+__device__ void excludeRow(Scheme &scheme, int matrix, int row);
 __device__ void addColumn(Scheme &scheme, int matrix);
 __device__ void addRow(Scheme &scheme, int matrix);
 
@@ -73,7 +74,7 @@ __device__ void plus(Scheme &scheme, int i, int j, int k, int index1, int index2
 __device__ void split(Scheme &scheme, int i, int j, int k, int index, const T a1);
 __device__ void reduceGauss(Scheme &scheme, int i, int *combination, int combinationSize);
 __device__ void reduce(Scheme &scheme, int i, int index1, int index2);
-__device__ void project(Scheme &scheme, int p);
+__device__ void project(Scheme &scheme, int p, int q);
 __device__ void extend(Scheme &scheme, int p);
 
 /********************************************** random operators ***********************************************/

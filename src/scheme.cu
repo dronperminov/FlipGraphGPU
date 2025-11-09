@@ -55,6 +55,20 @@ __device__ void initializeNaive(Scheme &scheme, int n1, int n2, int n3) {
         printf("not valid naive scheme\n");
 }
 
+__device__ void initializeFrom(Scheme &scheme, int n1, int n2, int n3, int m, const T uvw[3][MAX_RANK]) {
+    scheme.m = m;
+    scheme.n[0] = n1;
+    scheme.n[1] = n2;
+    scheme.n[2] = n3;
+
+    for (int i = 0; i < 3; i++) {
+        scheme.nn[i] = scheme.nn[i];
+
+        for (int index = 0; index < m; index++)
+            scheme.uvw[i][index] = uvw[i][index];
+    }
+}
+
 __device__ void copyScheme(const Scheme &scheme, Scheme &target) {
     target.m = scheme.m;
 
@@ -99,31 +113,43 @@ __device__ void addTriplet(Scheme &scheme, int i, int j, int k, const T u, const
     scheme.m++;
 }
 
-__device__ void excludeColumn(Scheme &scheme, int matrix) {
+__device__ void excludeColumn(Scheme &scheme, int matrix, int column) {
     int n1 = scheme.n[matrix];
     int n2 = scheme.n[(matrix + 1) % 3];
+    int oldColumns[MAX_MATRIX_SIZE];
+    int size = 0;
+
+    for (int j = 0; j < n2; j++)
+        if (j != column)
+            oldColumns[size++] = j;
 
     for (int index = 0; index < scheme.m; index++) {
         T value = 0;
 
         for (int i = 0; i < n1; i++)
             for (int j = 0; j < n2 - 1; j++)
-                value |= T((scheme.uvw[matrix][index] >> (i * n2 + j)) & 1) << (i * (n2 - 1) + j);
+                value |= T((scheme.uvw[matrix][index] >> (i * n2 + oldColumns[j])) & 1) << (i * (n2 - 1) + j);
 
         scheme.uvw[matrix][index] = value;
     }
 }
 
-__device__ void excludeRow(Scheme &scheme, int matrix) {
+__device__ void excludeRow(Scheme &scheme, int matrix, int row) {
     int n1 = scheme.n[matrix];
     int n2 = scheme.n[(matrix + 1) % 3];
+    int oldRows[MAX_MATRIX_SIZE];
+    int size = 0;
+
+    for (int i = 0; i < n1; i++)
+        if (i != row)
+            oldRows[size++] = i;
 
     for (int index = 0; index < scheme.m; index++) {
         T value = 0;
 
         for (int i = 0; i < n1 - 1; i++)
             for (int j = 0; j < n2; j++)
-                value |= T((scheme.uvw[matrix][index] >> (i * n2 + j)) & 1) << (i * n2 + j);
+                value |= T((scheme.uvw[matrix][index] >> (oldRows[i] * n2 + j)) & 1) << (i * n2 + j);
 
         scheme.uvw[matrix][index] = value;
     }
@@ -539,9 +565,9 @@ __device__ void reduce(Scheme &scheme, int i, int index1, int index2) {
         removeZeroes(scheme);
 }
 
-__device__ void project(Scheme &scheme, int p) {
-    excludeRow(scheme, p);
-    excludeColumn(scheme, (p + 2) % 3);
+__device__ void project(Scheme &scheme, int p, int q) {
+    excludeRow(scheme, p, q);
+    excludeColumn(scheme, (p + 2) % 3, q);
     scheme.n[p]--;
 
     for (int i = 0; i < 3; i++)
@@ -624,9 +650,15 @@ __device__ bool trySplit(Scheme &scheme, curandState &state) {
 
     T a1 = curand(&state) % (T(1) << scheme.nn[i]);
     const T a2 = scheme.uvw[i][index];
+    int loop = 0;
 
-    while (a1 == a2)
+    while (loop < 5 && a1 == a2) {
         a1 = curand(&state) % (T(1) << scheme.nn[i]);
+        loop++;
+    }
+
+    if (loop == 5)
+        return false;
 
     split(scheme, i, j, k, index, a1);
     return true;
@@ -644,9 +676,15 @@ __device__ bool trySplitExisted(Scheme &scheme, curandState &state) {
 
     int index1 = curand(&state) % scheme.m;
     int index2 = curand(&state) % scheme.m;
+    int loop = 0;
 
-    while (index1 == index2 || scheme.uvw[i][index1] == scheme.uvw[i][index2])
+    while (loop < 5 && (index1 == index2 || scheme.uvw[i][index1] == scheme.uvw[i][index2])) {
         index2 = curand(&state) % scheme.m;
+        loop++;
+    }
+
+    if (loop == 5)
+        return false;
 
     split(scheme, i, j, k, index1, scheme.uvw[i][index2]);
     return true;
@@ -682,20 +720,25 @@ __device__ bool tryReduce(Scheme &scheme, curandState &state) {
 __device__ bool tryProject(Scheme &scheme, curandState &state) {
     int indices[3];
     int size = 0;
+    int minValue = 3;
 
-    if (scheme.n[0] > 2)
+    if (scheme.n[0] > minValue && (scheme.n[1] > 2 || scheme.n[2] > 2))
         indices[size++] = 0;
 
-    if (scheme.n[1] > scheme.n[0])
+    // if (scheme.n[1] > scheme.n[0])
+    if (scheme.n[1] > minValue && (scheme.n[0] > 2 || scheme.n[2] > 2))
         indices[size++] = 1;
 
-    if (scheme.n[2] > scheme.n[1])
+    // if (scheme.n[2] > scheme.n[1])
+    if (scheme.n[2] > minValue && (scheme.n[0] > 2 || scheme.n[1] > 2))
         indices[size++] = 2;
 
     if (size == 0)
         return false;
 
-    project(scheme, indices[curand(&state) % size]);
+    int p = indices[curand(&state) % size];
+    int q = curand(&state) % scheme.n[p];
+    project(scheme, p, q);
 
     while (tryReduce(scheme, state))
         ;
@@ -706,19 +749,22 @@ __device__ bool tryProject(Scheme &scheme, curandState &state) {
 __device__ bool tryExtend(Scheme &scheme, curandState &state) {
     int indices[3];
     int size = 0;
+    int maxValue = 6;
 
     int maxSize = sizeof(T) * 8;
     int n0 = scheme.n[0] + 1;
     int n1 = scheme.n[1] + 1;
     int n2 = scheme.n[2] + 1;
 
-    if (scheme.n[2] < 5 && n2 * scheme.n[0] <= maxSize && n2 * scheme.n[1] <= maxSize && scheme.m + scheme.n[0] * scheme.n[1] <= MAX_RANK)
+    if (scheme.n[2] < maxValue && n2 * scheme.n[0] <= maxSize && n2 * scheme.n[1] <= maxSize && scheme.m + scheme.n[0] * scheme.n[1] <= MAX_RANK)
         indices[size++] = 2;
 
-    if (scheme.n[1] < scheme.n[2] && scheme.n[1] < 5 && n1 * scheme.n[0] <= maxSize && n1 * scheme.n[2] <= maxSize && scheme.m + scheme.n[0] * scheme.n[2] <= MAX_RANK)
+    // if (scheme.n[1] < scheme.n[2] && scheme.n[1] < 5 && n1 * scheme.n[0] <= maxSize && n1 * scheme.n[2] <= maxSize && scheme.m + scheme.n[0] * scheme.n[2] <= MAX_RANK)
+    if (scheme.n[1] < maxValue && n1 * scheme.n[0] <= maxSize && n1 * scheme.n[2] <= maxSize && scheme.m + scheme.n[0] * scheme.n[2] <= MAX_RANK)
         indices[size++] = 1;
 
-    if (scheme.n[0] < scheme.n[1] && scheme.n[0] < 5 && n0 * scheme.n[1] <= maxSize && n0 * scheme.n[2] <= maxSize && scheme.m + scheme.n[1] * scheme.n[2] <= MAX_RANK)
+    // if (scheme.n[0] < scheme.n[1] && scheme.n[0] < 5 && n0 * scheme.n[1] <= maxSize && n0 * scheme.n[2] <= maxSize && scheme.m + scheme.n[1] * scheme.n[2] <= MAX_RANK)
+    if (scheme.n[0] < maxValue && n0 * scheme.n[1] <= maxSize && n0 * scheme.n[2] <= maxSize && scheme.m + scheme.n[1] * scheme.n[2] <= MAX_RANK)
         indices[size++] = 0;
 
     if (size == 0)
