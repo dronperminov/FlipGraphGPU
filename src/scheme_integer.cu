@@ -293,6 +293,13 @@ __device__ __host__ void Scheme::plus(int i, int j, int k, int index1, int index
     initFlips();
 }
 
+__device__ __host__ void Scheme::split(int i, int j, int k, int index, const Addition& addition) {
+    addTriplet(i, j, k, uvw[i][index] - addition, uvw[j][index], uvw[k][index]);
+    uvw[i][index] = addition;
+
+    initFlips();
+}
+
 __device__ __host__ void Scheme::reduce(int i, int index1, int index2) {
     uvw[i][index1] += uvw[i][index2];
     bool isZero = !uvw[i][index1];
@@ -449,11 +456,37 @@ __device__ bool Scheme::tryPlus(curandState &state) {
     return true;
 }
 
+__device__ bool Scheme::trySplitExisted(curandState &state) {
+    if (m >= MAX_RANK)
+        return false;
+
+    int index1, index2;
+    int i;
+
+    do {
+        index1 = curand(&state) % m;
+        index2 = curand(&state) % m;
+        i = curand(&state) % 3;
+    } while (index1 == index2 || uvw[i][index1] == uvw[i][index2]);
+
+    int j = (i + 1) % 3;
+    int k = (i + 2) % 3;
+
+    split(i, j, k, index1, uvw[i][index2]);
+    return true;
+}
+
 __device__ bool Scheme::tryExpand(int count, curandState &state) {
+    int maxRank = n[0] * n[1] * n[2];
     bool result = false;
 
-    for (int i = 0; i < count; i++) {
-        result |= tryPlus(state);
+    for (int i = 0; i < count && m < maxRank; i++) {
+        int v = curand(&state) % 2;
+
+        if (v == 0)
+            result |= tryPlus(state);
+        else
+            result |= trySplitExisted(state);
     }
 
     return result;

@@ -28,6 +28,7 @@ struct Scheme {
 
     __device__ bool tryFlip(curandState &state);
     __device__ bool tryPlus(curandState &state);
+    __device__ bool trySplitExisted(curandState &state);
     __device__ bool tryExpand(int count, curandState &state);
     __device__ bool tryReduce(curandState &state);
     __device__ bool tryProject(curandState &state, int n1 = 2, int n2 = 2, int n3 = 2);
@@ -50,6 +51,7 @@ private:
 
     __device__ __host__ void flip(int i, int j, int k, int index1, int index2, bool checkReduce = true);
     __device__ __host__ void plus(int i, int j, int k, int index1, int index2, int variant);
+    __device__ __host__ void split(int i, int j, int k, int index, const Addition& addition);
     __device__ __host__ void reduce(int i, int index1, int index2);
     __device__ __host__ void project(int p, int q);
     __device__ __host__ void extend(int p);
