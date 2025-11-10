@@ -53,6 +53,7 @@ class FlipGraph {
     curandState *states;
 
     std::unordered_map<std::string, int> n2bestRank;
+    std::unordered_map<std::string, int> n2knownRanks;
 public:
     FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, int maxIterations, const std::string &path, const FlipGraphProbabilities &probabilities, int seed);
 

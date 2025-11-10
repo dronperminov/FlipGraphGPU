@@ -10,27 +10,16 @@
 
 #include "random.cuh"
 #include "addition.cuh"
+#include "flip_set.cuh"
 
 const int MAX_RANK = 150;
-
-struct FlipCandidate {
-    int first;
-    int second;
-    int index1;
-    int index2;
-};
-
-struct ReduceCandidate {
-    int i;
-    int index1;
-    int index2;
-};
 
 struct Scheme {
     int n[3];
     int nn[3];
     int m;
     Addition uvw[3][MAX_RANK];
+    FlipSet flips[3];
 
     __device__ __host__ bool validate() const;
     __device__ __host__ void initializeNaive(int n1, int n2, int n3);
@@ -50,6 +39,7 @@ struct Scheme {
 private:
     __device__ __host__ bool validateEquation(int i, int j, int k) const;
 
+    __device__ __host__ void initFlips();
     __device__ __host__ void removeZeroes();
     __device__ __host__ void removeAt(int startIndex);
     __device__ __host__ void addTriplet(int i, int j, int k, const Addition &u, const Addition &v, const Addition &w);
@@ -58,10 +48,7 @@ private:
     __device__ __host__ void addColumn(int matrix);
     __device__ __host__ void addRow(int matrix);
 
-    __device__ FlipCandidate getFlipCandidate(curandState &state) const;
-    __device__ ReduceCandidate getReduceCandidate(curandState &state) const;
-
-    __device__ __host__ void flip(int first, int second, int index1, int index2);
+    __device__ __host__ void flip(int i, int j, int k, int index1, int index2, bool checkReduce = true);
     __device__ __host__ void plus(int i, int j, int k, int index1, int index2, int variant);
     __device__ __host__ void reduce(int i, int index1, int index2);
     __device__ __host__ void project(int p, int q);

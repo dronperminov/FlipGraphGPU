@@ -1,7 +1,7 @@
 CXX = nvcc
 FLAGS = -O3 -Xptxas -O3
-OBJECTS_Z2 = arg_parser.o scheme_z2.o flip_graph.o main.o
-OBJECTS_INTEGER = arg_parser.o addition.o scheme_integer.o flip_graph.o main.o
+OBJECTS_Z2 = arg_parser.o flip_set.o scheme_z2.o flip_graph.o main.o
+OBJECTS_INTEGER = arg_parser.o addition.o flip_set.o scheme_integer.o flip_graph.o main.o
 TARGET = flip_graph
 
 z2: $(OBJECTS_Z2)

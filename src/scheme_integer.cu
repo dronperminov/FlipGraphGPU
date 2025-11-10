@@ -51,6 +51,8 @@ __device__ __host__ void Scheme::initializeNaive(int n1, int n2, int n3) {
         }
     }
 
+    initFlips();
+
     if (!validate())
         printf("not valid naive scheme\n");
 }
@@ -64,11 +66,13 @@ __device__ __host__ void Scheme::initializeFrom(int n1, int n2, int n3, int m, i
     nn[1] = n2 * n3;
     nn[2] = n3 * n1;
 
-    m = n1 * n2 * n3;
+    this->m = m;
 
     for (int i = 0; i < 3; i++)
         for (int index = 0; index < m; index++)
             uvw[i][index] = Addition(nn[i], scheme[i][index]);
+
+    initFlips();
 
     if (!validate())
         printf("not valid from scheme %d %d %d %d\n", n1, n2, n3, m);
@@ -84,6 +88,19 @@ __device__ __host__ void Scheme::copyTo(Scheme &target) {
         for (int index = 0; index < m; index++)
             target.uvw[i][index] = uvw[i][index];
     }
+
+    target.initFlips();
+}
+
+__device__ __host__ void Scheme::initFlips() {
+    for (int i = 0; i < 3; i++) {
+        flips[i].clear();
+
+        for (int index1 = 0; index1 < m; index1++)
+            for (int index2 = index1 + 1; index2 < m; index2++)
+                if (uvw[i][index1] == uvw[i][index2])
+                    flips[i].add(index1, index2);
+    }
 }
 
 __device__ __host__ void Scheme::removeZeroes() {
@@ -98,21 +115,6 @@ __device__ __host__ void Scheme::removeZeroes() {
             uvw[2][index] = uvw[2][m];
         }
     }
-    // int i = 0;
-
-    // for (int index = 0; index < m; index++) {
-    //     if (uvw[0][index] && uvw[1][index] && uvw[2][index]) {
-    //         if (i != index) {
-    //             uvw[0][i] = uvw[0][index];
-    //             uvw[1][i] = uvw[1][index];
-    //             uvw[2][i] = uvw[2][index];
-    //         }
-
-    //         i++;
-    //     }
-    // }
-
-    // m = i;
 }
 
 __device__ __host__ void Scheme::removeAt(int index) {
@@ -205,160 +207,53 @@ __device__ __host__ void Scheme::addRow(int matrix) {
     }
 }
 
-/******************************************************** helpers ********************************************************/
-__device__ FlipCandidate Scheme::getFlipCandidate(curandState &state) const {
-    int permutation[3];
-    int indices[MAX_RANK];
-
-    randomPermutation(permutation, 3, state);
-    randomPermutation(indices, m, state);
-
-    int variant = curand(&state) % 3;
-
-    if (variant == 0) {
-        #pragma unroll
-        for (int p = 0; p < 3; p++) {
-            int i = permutation[p];
-            int j = permutation[(p + 1) % 3];
-            int k = permutation[(p + 2) % 3];
-
-            #pragma unroll
-            for (int index1 = 0; index1 < m; index1++) {
-                #pragma unroll
-                for (int index2 = index1 + 1; index2 < m; index2++) {
-                    if (uvw[i][indices[index1]] != uvw[i][indices[index2]])
-                        continue;
-
-                    if (uvw[j][indices[index1]].limitSum(uvw[j][indices[index2]], j != 2) && uvw[k][indices[index2]].limitSub(uvw[k][indices[index1]])) {
-                        if (k == 2 || uvw[k][indices[index2]].positiveFirstNonZeroSub(uvw[k][indices[index1]]))
-                            return {j, k, indices[index1], indices[index2]};
-                        else
-                            return {j, k, indices[index2], indices[index1]};
-                    }
-
-                    if (uvw[k][indices[index1]].limitSum(uvw[k][indices[index2]], k != 2) && uvw[j][indices[index2]].limitSub(uvw[j][indices[index1]])) {
-                        if (j == 2 || uvw[j][indices[index2]].positiveFirstNonZeroSub(uvw[j][indices[index1]]))
-                            return {k, j, indices[index1], indices[index2]};
-                        else
-                            return {k, j, indices[index2], indices[index1]};
-                    }
-                }
-            }
-        }
-    }
-    else if (variant == 1) {
-        #pragma unroll
-        for (int index1 = 0; index1 < m; index1++) {
-            #pragma unroll
-            for (int p = 0; p < 3; p++) {
-                int i = permutation[p];
-                int j = permutation[(p + 1) % 3];
-                int k = permutation[(p + 2) % 3];
-
-                #pragma unroll
-                for (int index2 = index1 + 1; index2 < m; index2++) {
-                    if (uvw[i][indices[index1]] != uvw[i][indices[index2]])
-                        continue;
-
-                    if (uvw[j][indices[index1]].limitSum(uvw[j][indices[index2]], j != 2) && uvw[k][indices[index2]].limitSub(uvw[k][indices[index1]])) {
-                        if (k == 2 || uvw[k][indices[index2]].positiveFirstNonZeroSub(uvw[k][indices[index1]]))
-                            return {j, k, indices[index1], indices[index2]};
-                        else
-                            return {j, k, indices[index2], indices[index1]};
-                    }
-
-                    if (uvw[k][indices[index1]].limitSum(uvw[k][indices[index2]], k != 2) && uvw[j][indices[index2]].limitSub(uvw[j][indices[index1]])) {
-                        if (j == 2 || uvw[j][indices[index2]].positiveFirstNonZeroSub(uvw[j][indices[index1]]))
-                            return {k, j, indices[index1], indices[index2]};
-                        else
-                            return {k, j, indices[index2], indices[index1]};
-                    }
-                }
-            }
-        }
-    }
-    else {
-        #pragma unroll
-        for (int index1 = 0; index1 < m; index1++) {
-            #pragma unroll
-            for (int index2 = index1 + 1; index2 < m; index2++) {
-                #pragma unroll
-                for (int p = 0; p < 3; p++) {
-                    int i = permutation[p];
-                    int j = permutation[(p + 1) % 3];
-                    int k = permutation[(p + 2) % 3];
-
-                    if (uvw[i][indices[index1]] != uvw[i][indices[index2]])
-                        continue;
-
-                    if (uvw[j][indices[index1]].limitSum(uvw[j][indices[index2]], j != 2) && uvw[k][indices[index2]].limitSub(uvw[k][indices[index1]])) {
-                        if (k == 2 || uvw[k][indices[index2]].positiveFirstNonZeroSub(uvw[k][indices[index1]]))
-                            return {j, k, indices[index1], indices[index2]};
-                        else
-                            return {j, k, indices[index2], indices[index1]};
-                    }
-
-                    if (uvw[k][indices[index1]].limitSum(uvw[k][indices[index2]], k != 2) && uvw[j][indices[index2]].limitSub(uvw[j][indices[index1]])) {
-                        if (j == 2 || uvw[j][indices[index2]].positiveFirstNonZeroSub(uvw[j][indices[index1]]))
-                            return {k, j, indices[index1], indices[index2]};
-                        else
-                            return {k, j, indices[index2], indices[index1]};
-                    }
-                }
-            }
-        }
-    }
-
-    return {-1, 0, 0, 0};
-}
-
-__device__ ReduceCandidate Scheme::getReduceCandidate(curandState &state) const {
-    int permutation[3];
-    int indices[MAX_RANK];
-
-    randomPermutation(permutation, 3, state);
-    randomPermutation(indices, m, state);
-
-    int i = permutation[0];
-    int j = permutation[1];
-    int k = permutation[2];
-
-    #pragma unroll
-    for (int index1 = 0; index1 < m; index1++) {
-        #pragma unroll
-        for (int index2 = index1 + 1; index2 < m; index2++) {
-            const Addition u1 = uvw[i][indices[index1]];
-            const Addition u2 = uvw[i][indices[index2]];
-
-            const Addition v1 = uvw[j][indices[index1]];
-            const Addition v2 = uvw[j][indices[index2]];
-
-            const Addition w1 = uvw[k][indices[index1]];
-            const Addition w2 = uvw[k][indices[index2]];
-
-            if (u1 == u2) {
-                if (w1 == w2 && uvw[j][indices[index1]].limitSum(uvw[j][indices[index2]], j != 2))
-                    return {j, indices[index1], indices[index2]};
-
-                if (v1 == v2 && uvw[k][indices[index1]].limitSum(uvw[k][indices[index2]], k != 2))
-                    return {k, indices[index1], indices[index2]};
-            }
-            else if (v1 == v2 && w1 == w2 && uvw[i][indices[index1]].limitSum(uvw[i][indices[index2]], i != 2)) {
-                return {i, indices[index1], indices[index2]};
-            }
-        }
-    }
-
-    return {-1, 0, 0};
-}
-
 /******************************************************* operators *******************************************************/
-__device__ __host__ void Scheme::flip(int first, int second, int index1, int index2) {
-    uvw[first][index1] += uvw[first][index2];
-    uvw[second][index2] -= uvw[second][index1];
+__device__ __host__ void Scheme::flip(int i, int j, int k, int index1, int index2, bool checkReduce) {
+    uvw[j][index1] += uvw[j][index2];
+    uvw[k][index2] -= uvw[k][index1];
 
-    if (!uvw[first][index1] || !uvw[second][index2])
+    flips[j].remove(index1);
+    flips[k].remove(index2);
+
+    if (!uvw[j][index1] || !uvw[k][index2]) {
         removeZeroes();
+        initFlips();
+        return;
+    }
+
+    for (int index = 0; index < m; index++) {
+        if (index != index1 && uvw[j][index] == uvw[j][index1]) {
+            if (checkReduce) {
+                if (uvw[i][index] == uvw[i][index1] && uvw[k][index].limitSum(uvw[k][index1], k != 2)) {
+                    reduce(k, index, index1);
+                    return;
+                }
+
+                if (uvw[k][index] == uvw[k][index1] && uvw[i][index].limitSum(uvw[i][index1], i != 2)) {
+                    reduce(i, index, index1);
+                    return;
+                }
+            }
+
+            flips[j].add(index1, index);
+        }
+
+        if (index != index2 && uvw[k][index] == uvw[k][index2]) {
+            if (checkReduce) {
+                if (uvw[i][index] == uvw[i][index2] && uvw[j][index].limitSum(uvw[j][index1], j != 2)) {
+                    reduce(j, index, index2);
+                    return;
+                }
+
+                if (uvw[j][index] == uvw[j][index2] && uvw[i][index].limitSum(uvw[i][index1], i != 2)) {
+                    reduce(i, index, index2);
+                    return;
+                }
+            }
+
+            flips[k].add(index2, index);
+        }
+    }
 }
 
 __device__ __host__ void Scheme::plus(int i, int j, int k, int index1, int index2, int variant) {
@@ -395,6 +290,7 @@ __device__ __host__ void Scheme::plus(int i, int j, int k, int index1, int index
     }
 
     removeZeroes();
+    initFlips();
 }
 
 __device__ __host__ void Scheme::reduce(int i, int index1, int index2) {
@@ -405,6 +301,8 @@ __device__ __host__ void Scheme::reduce(int i, int index1, int index2) {
 
     if (isZero)
         removeZeroes();
+
+    initFlips();
 }
 
 __device__ __host__ void Scheme::project(int p, int q) {
@@ -416,6 +314,7 @@ __device__ __host__ void Scheme::project(int p, int q) {
         nn[i] = n[i] * n[(i + 1) % 3];
 
     removeZeroes();
+    initFlips();
 
     if (!validate())
         printf("project: invalid scheme %d %d (%d, %d, %d)\n", p, q, n[0], n[1], n[2]);
@@ -452,18 +351,81 @@ __device__ __host__ void Scheme::extend(int p) {
     for (int i = 0; i < 3; i++)
         nn[i] = n[i] * n[(i + 1) % 3];
 
+    initFlips();
+
     if (!validate())
         printf("extend: invalid scheme %d (%d, %d, %d)\n", p, n[0], n[1], n[2]);
 }
 
 /*************************************************** random operators ****************************************************/
 __device__ bool Scheme::tryFlip(curandState &state) {
-    FlipCandidate possibleFlip = getFlipCandidate(state);
-    if (possibleFlip.first < 0)
-        return false;
+    int size = flips[0].size + flips[1].size + flips[2].size;
+    int indices[MAX_PAIRS];
 
-    flip(possibleFlip.first, possibleFlip.second, possibleFlip.index1, possibleFlip.index2);
-    return true;
+    randomPermutation(indices, size, state);
+
+    for (int p = 0; p < size; p++) {
+        int index = indices[p];
+        int i, j, k, index1, index2;
+
+        if (index < flips[0].size) {
+            i = 0;
+            j = 1;
+            k = 2;
+            index1 = flips[0].index1(index);
+            index2 = flips[0].index2(index);
+        }
+        else if (index < flips[0].size + flips[1].size) {
+            i = 1;
+            j = 0;
+            k = 2;
+            index1 = flips[1].index1(index - flips[0].size);
+            index2 = flips[1].index2(index - flips[0].size);
+        }
+        else {
+            i = 2;
+            j = 0;
+            k = 1;
+            index1 = flips[2].index1(index - flips[0].size - flips[1].size);
+            index2 = flips[2].index2(index - flips[0].size - flips[1].size);
+        }
+
+        if (curand(&state) % 2) {
+            int tmp = j;
+            j = k;
+            k = tmp;
+        }
+
+        if (curand(&state) % 2) {
+            int tmp = index1;
+            index1 = index2;
+            index2 = tmp;
+        }
+
+        if (uvw[j][index1].limitSum(uvw[j][index2], j != 2) && uvw[k][index2].limitSub(uvw[k][index1])) {
+            if (k == 2 || uvw[k][index2].positiveFirstNonZeroSub(uvw[k][index1])) {
+                flip(i, j, k, index1, index2);
+                return true;
+            }
+            else {
+                flip(i, j, k, index2, index1);
+                return true;
+            }
+        }
+
+        if (uvw[k][index1].limitSum(uvw[k][index2], k != 2) && uvw[j][index2].limitSub(uvw[j][index1])) {
+            if (j == 2 || uvw[j][index2].positiveFirstNonZeroSub(uvw[j][index1])) {
+                flip(i, k, j, index1, index2);
+                return true;
+            }
+            else {
+                flip(i, k, j, index2, index1);
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 __device__ bool Scheme::tryPlus(curandState &state) {
@@ -498,12 +460,32 @@ __device__ bool Scheme::tryExpand(int count, curandState &state) {
 }
 
 __device__ bool Scheme::tryReduce(curandState &state) {
-    ReduceCandidate possibleReduce = getReduceCandidate(state);
-    if (possibleReduce.i == -1)
-        return false;
+    for (size_t i = 0; i < flips[0].size; i++) {
+        int index1 = flips[0].index1(i);
+        int index2 = flips[0].index2(i);
 
-    reduce(possibleReduce.i, possibleReduce.index1, possibleReduce.index2);
-    return true;
+        if (uvw[1][index1] == uvw[1][index2] && uvw[2][index1].limitSum(uvw[2][index2], false)) {
+            reduce(2, index1, index2);
+            return true;
+        }
+
+        if (uvw[2][index1] == uvw[2][index2] && uvw[1][index1].limitSum(uvw[1][index2], false)) {
+            reduce(1, index1, index2);
+            return true;
+        }
+    }
+
+    for (size_t i = 0; i < flips[1].size; i++) {
+        int index1 = flips[1].index1(i);
+        int index2 = flips[1].index2(i);
+
+        if (uvw[2][index1] == uvw[2][index2] && uvw[0][index1].limitSum(uvw[0][index2], true)) {
+            reduce(0, index1, index2);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 __device__ bool Scheme::tryProject(curandState &state, int n1, int n2, int n3) {

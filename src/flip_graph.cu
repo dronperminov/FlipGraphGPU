@@ -26,6 +26,18 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
 
     n2bestRank[getKey(n1, n2, n3)] = n1 * n2 * n3;
 
+    n2knownRanks = {
+        {"222", 7},
+        {"223", 11}, {"224", 14}, {"225", 18}, {"226", 21}, {"227", 25}, {"233", 15}, {"234", 20}, {"235", 25}, {"236", 30}, {"237", 35},
+        {"244", 26}, {"245", 32}, {"246", 39}, {"247", 45}, {"255", 40}, {"256", 47}, {"257", 55}, {"266", 56}, {"267", 66}, {"277", 76},
+        {"333", 23}, {"334", 29}, {"335", 36}, {"336", 40}, {"337", 49}, {"344", 38}, {"345", 47}, {"346", 54}, {"347", 63}, {"355", 58},
+        {"356", 68}, {"357", 79}, {"366", 80}, {"367", 94}, {"377", 112},
+        {"444", 48}, {"445", 61}, {"446", 73}, {"447", 85}, {"455", 75}, {"456", 90}, {"457", 104}, {"466", 105}, {"467", 123}, {"477", 144},
+        {"555", 93}, {"556", 110}, {"557", 127}, {"566", 130}, {"567", 150}, {"577", 176},
+        {"666", 153}, {"667", 183}, {"677", 215},
+        {"777", 249}
+    };
+
     CUDA_CHECK(cudaMallocManaged(&schemes, schemesCount * sizeof(Scheme)));
     CUDA_CHECK(cudaMallocManaged(&schemesBest, schemesCount * sizeof(Scheme)));
     CUDA_CHECK(cudaMallocManaged(&bestRanks, schemesCount * sizeof(int)));
@@ -74,7 +86,7 @@ void FlipGraph::updateRanks(int iteration) {
     for (auto pair : n2bestIndex) {
         std::string savePath = getSavePath(schemes[pair.second], iteration, pair.second);
         schemes[pair.second].save(savePath);
-        std::cout << "Best rank of " << pair.first << " was improved to " << bestRanks[pair.second] << "! Scheme saved to \"" << savePath << "\"" << std::endl;
+        std::cout << "Best rank of " << pair.first << " was improved to " << bestRanks[pair.second] << " (known: " << n2knownRanks[pair.first] << ")! Scheme saved to \"" << savePath << "\"" << std::endl;
     }
 
     if (n2bestIndex.size())
@@ -124,18 +136,14 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
             std::string savePath = getSavePath(schemesBest[index], iteration, index);
             schemesBest[index].save(savePath);
 
-            std::cout << "Best rank of " << n << " was improved from " << n2bestRank[n] << " to " << bestRanks[index] << "! Scheme saved to \"" << savePath << "\"" << std::endl;
+            std::cout << "Best rank of " << n << " was improved from " << n2bestRank[n] << " to " << bestRanks[index] << " (known: " << n2knownRanks[n] << ")! Scheme saved to \"" << savePath << "\"" << std::endl;
             n2bestRank[n] = bestRanks[index];
-
-            for (auto i : pair.second)
-                if (i % iteration == 0)
-                    schemesBest[index].copyTo(schemes[i]);
         }
     }
 
-    std::cout << "+-----------+-----------+--------+------+------+------+------+-------------+" << std::endl;
-    std::cout << "|  elapsed  | iteration | run id | size | real | best | curr | flips count |" << std::endl;
-    std::cout << "+-----------+-----------+--------+------+------+------+------+-------------+" << std::endl;
+    std::cout << "+-----------+-----------+--------+------+------+-------+------+------+-------------+" << std::endl;
+    std::cout << "|  elapsed  | iteration | run id | size | real | known | best | curr | flips count |" << std::endl;
+    std::cout << "+-----------+-----------+--------+------+------+-------+------+------+-------------+" << std::endl;
 
     std::sort(keys.begin(), keys.end());
 
@@ -154,17 +162,26 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
             std::cout << std::setw(6) << (indices[i] + 1) << " | ";
             std::cout << std::setw(4) << key << " | ";
             std::cout << " " << scheme.n[0] << scheme.n[1] << scheme.n[2] << " | ";
+            std::cout << std::setw(5) << n2knownRanks[key] << " | ";
             std::cout << std::setw(4) << bestRanks[indices[i]] << " | ";
             std::cout << std::setw(4) << scheme.m << " | ";
             std::cout << std::setw(11) << prettyFlips(flips[indices[i]]) << " |";
 
-            if (i == 0)
+            if (i == 0) {
                 std::cout << " total: " << indices.size();
+
+                if (bestRanks[indices[0]] <= n2knownRanks[key])
+                    std::cout << ", " << (bestRanks[indices[0]] == n2knownRanks[key] ? "equal" : "better");
+            }
 
             std::cout << std::endl;
         }
 
-        std::cout << "+-----------+-----------+--------+------+------+------+------+-------------+" << std::endl;
+        std::cout << "+-----------+-----------+--------+------+------+-------+------+------+-------------+" << std::endl;
+
+        for (auto i : indices)
+            if (i % iteration == 0)
+                schemesBest[indices[0]].copyTo(schemes[i]);
     }
 
     std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;

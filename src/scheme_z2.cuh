@@ -9,6 +9,7 @@
 #include <curand_kernel.h>
 
 #include "random.cuh"
+#include "flip_set.cuh"
 
 typedef uint32_t T;
 
@@ -17,31 +18,18 @@ const int MAX_MATRIX_SIZE = 7;
 const int MAX_MATRIX_ELEMENTS = MAX_MATRIX_SIZE * MAX_MATRIX_SIZE;
 const int MAX_SIZE = 8 * sizeof(T);
 
-struct FlipCandidate {
-    int first;
-    int second;
-    int index1;
-    int index2;
-};
-
-struct ReduceCandidate {
-    int i;
-    int index1;
-    int index2;
-};
-
 struct ReduceGaussCandidate {
     int i;
     int combination[MAX_RANK];
     int size;
 };
 
-
 struct Scheme {
     int n[3];
     int nn[3];
     int m;
     T uvw[3][MAX_RANK];
+    FlipSet flips[3];
 
     __device__ __host__ bool validate() const;
     __device__ __host__ void initializeNaive(int n1, int n2, int n3);
@@ -63,6 +51,7 @@ struct Scheme {
 private:
     __device__ __host__ bool validateEquation(int i, int j, int k) const;
 
+    __device__ __host__ void initFlips();
     __device__ __host__ void removeZeroes();
     __device__ __host__ void removeAt(int startIndex);
     __device__ __host__ void addTriplet(int i, int j, int k, const T u, const T v, const T w);
@@ -72,8 +61,6 @@ private:
     __device__ __host__ void addColumn(int matrix);
     __device__ __host__ void addRow(int matrix);
 
-    __device__ FlipCandidate getFlipCandidate(curandState &state) const;
-    __device__ ReduceCandidate getReduceCandidate(curandState &state) const;
     __device__ ReduceGaussCandidate getReduceGaussCandidate(curandState &state) const;
 
     __device__ int findXorCombination(int uvwIndex, int *indices, int size, int *combination) const;
@@ -82,7 +69,7 @@ private:
     __device__ void invertibleMatrixZ2(int n, int *matrix, int *inverse, curandState &state) const;
     __device__ T matmul(const T matrix, int *left, int *right, int n1, int n2) const;
 
-    __device__ __host__ void flip(int first, int second, int index1, int index2);
+    __device__ __host__ void flip(int i, int j, int k, int index1, int index2, bool checkReduce = true);
     __device__ __host__ void plus(int i, int j, int k, int index1, int index2, int variant);
     __device__ __host__ void split(int i, int j, int k, int index, const T a1);
     __device__ __host__ void reduce(int i, int index1, int index2);
