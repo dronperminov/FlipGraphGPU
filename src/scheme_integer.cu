@@ -52,9 +52,6 @@ __device__ __host__ void Scheme::initializeNaive(int n1, int n2, int n3) {
     }
 
     initFlips();
-
-    if (!validate())
-        printf("not valid naive scheme\n");
 }
 
 __device__ __host__ void Scheme::initializeFrom(int n1, int n2, int n3, int m, int scheme[3][MAX_RANK][MAX_MATRIX_ELEMENTS]) {
@@ -150,7 +147,7 @@ __device__ __host__ void Scheme::excludeColumn(int matrix, int column) {
 
         for (int i = 0; i < n1; i++)
             for (int j = 0; j < n2 - 1; j++)
-                value.values[i * (n2 - 1) + j] = uvw[matrix][index][i * n2 + oldColumns[j]];
+                value.set(i * (n2 - 1) + j, uvw[matrix][index][i * n2 + oldColumns[j]]);
 
         value.copyTo(uvw[matrix][index]);
     }
@@ -171,7 +168,7 @@ __device__ __host__ void Scheme::excludeRow(int matrix, int row) {
 
         for (int i = 0; i < n1 - 1; i++)
             for (int j = 0; j < n2; j++)
-                value.values[i * n2 + j] = uvw[matrix][index][oldRows[i] * n2 + j];
+                value.set(i * n2 + j, uvw[matrix][index][oldRows[i] * n2 + j]);
 
         value.copyTo(uvw[matrix][index]);
     }
@@ -186,7 +183,7 @@ __device__ __host__ void Scheme::addColumn(int matrix) {
 
         for (int i = 0; i < n1; i++)
             for (int j = 0; j < n2; j++)
-                value.values[i * (n2 + 1) + j] = uvw[matrix][index][i * n2 + j];
+                value.set(i * (n2 + 1) + j, uvw[matrix][index][i * n2 + j]);
 
         value.copyTo(uvw[matrix][index]);
     }
@@ -201,7 +198,7 @@ __device__ __host__ void Scheme::addRow(int matrix) {
 
         for (int i = 0; i < n1; i++)
             for (int j = 0; j < n2; j++)
-                value.values[i * n2 + j] = uvw[matrix][index][i * n2 + j];
+                value.set(i * n2 + j, uvw[matrix][index][i * n2 + j]);
 
         value.copyTo(uvw[matrix][index]);
     }
@@ -467,7 +464,7 @@ __device__ bool Scheme::trySplitExisted(curandState &state) {
         index1 = curand(&state) % m;
         index2 = curand(&state) % m;
         i = curand(&state) % 3;
-    } while (index1 == index2 || uvw[i][index1] == uvw[i][index2]);
+    } while (index1 == index2 || uvw[i][index1] == uvw[i][index2] || !uvw[i][index1].limitSub(uvw[i][index2], i != 2));
 
     int j = (i + 1) % 3;
     int k = (i + 2) % 3;
@@ -579,18 +576,8 @@ __device__ void Scheme::sandwiching(curandState &state) {
 void Scheme::saveMatrix(std::ofstream &f, std::string name, int m, const Addition *additions) const {
     f << "    \"" << name << "\": [" << std::endl;
 
-    for (int index = 0; index < m; index++) {
-        f << "        [";
-
-        for (int i = 0; i < additions[index].n; i++) {
-            if (i > 0)
-                f << ", ";
-
-            f << int(additions[index][i]);
-        }
-
-        f << "]" << (index < m - 1 ? "," : "") << std::endl;
-    }
+    for (int index = 0; index < m; index++)
+        f << "        [" << additions[index] << "]" << (index < m - 1 ? "," : "") << std::endl;
 
     f << "    ]";
 }

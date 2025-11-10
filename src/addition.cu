@@ -2,163 +2,187 @@
 
 __device__ __host__ Addition::Addition() {
     n = 0;
+    values = 0;
+    signs = 0;
+    carry = 0;
 }
 
 __device__ __host__ Addition::Addition(int n) {
     this->n = n;
-
-    for (int i = 0; i < n; i++)
-        values[i] = 0;
+    this->values = 0;
+    this->signs = 0;
+    this->carry = 0;
 }
 
 __device__ __host__ Addition::Addition(int n, int index) {
     this->n = n;
-
-    for (int i = 0; i < n; i++)
-        values[i] = 0;
-
-    values[index] = 1;
+    this->values = AdditionT(1) << index;
+    this->signs = 0;
+    this->carry = 0;
 }
 
 __device__ __host__ Addition::Addition(int n, int *values) {
     this->n = n;
+    this->values = 0;
+    this->carry = 0;
+    this->signs = 0;
 
     for (int i = 0; i < n; i++)
-        this->values[i] = values[i];
+        set(i, values[i]);
 }
 
 __device__ __host__ void Addition::copyTo(Addition &target) const {
     target.n = n;
+    target.values = values;
+    target.signs = signs;
+    target.carry = carry;
+}
 
-    for (int i = 0; i < n; i++)
-        target.values[i] = values[i];
+__device__ __host__ void Addition::set(int index, int value) {
+    AdditionT mask = AdditionT(1) << index;
+    carry &= ~mask;
+
+    if (value == 0) {
+        values &= ~mask;
+        signs &= ~mask;
+    }
+    else if (value == 1) {
+        values |= mask;
+        signs &= ~mask;
+    }
+    else if (value == -1) {
+        values |= mask;
+        signs |= mask;
+    }
+    else {
+        printf("invalid set (%d, %d)\n", index, value);
+    }
 }
 
 __device__ __host__ bool Addition::operator==(const Addition &addition) const {
-    for (int i = 0; i < n; i++)
-        if (values[i] != addition.values[i])
-            return false;
-
-    return true;
+    return values == addition.values && signs == addition.signs;
 }
 
 __device__ __host__ bool Addition::operator!=(const Addition &addition) const {
-    for (int i = 0; i < n; i++)
-        if (values[i] != addition.values[i])
-            return true;
-
-    return false;
+    return values != addition.values || signs != addition.signs;
 }
 
-__device__ __host__ int8_t Addition::operator[](int index) const {
-    return values[index];
+__device__ __host__ int Addition::operator[](int index) const {
+    int value = int((values >> index) & 1);
+
+    if ((signs >> index) & 1)
+        value = -value;
+
+    return value;
 }
 
 __device__ __host__ Addition Addition::operator+(const Addition &addition) const {
     Addition result(n);
 
-    for (int i = 0; i < n; i++)
-        result.values[i] = values[i] + addition.values[i];
-
+    result.values = values ^ addition.values;
+    result.signs = ((signs & values) | (addition.signs & addition.values)) & result.values;
+    result.carry = values & addition.values & ~(signs ^ addition.signs);
     return result;
 }
 
 __device__ __host__ Addition Addition::operator-(const Addition &addition) const {
     Addition result(n);
 
-    for (int i = 0; i < n; i++)
-        result.values[i] = values[i] - addition.values[i];
-
+    result.values = values ^ addition.values;
+    result.signs = ((signs & values) | (~addition.signs & addition.values)) & result.values;
+    result.carry = values & addition.values & (signs ^ addition.signs);
     return result;
 }
 
 __device__ __host__ Addition& Addition::operator+=(const Addition &addition) {
-    for (int i = 0; i < n; i++)
-        values[i] += addition.values[i];
+    AdditionT sv1 = signs & values;
+    AdditionT sv2 = addition.signs & addition.values;
 
+    carry = values & addition.values & ~(signs ^ addition.signs);
+    values ^= addition.values;
+    signs = (sv1 | sv2) & values;
     return *this;
 }
 
 __device__ __host__ Addition& Addition::operator-=(const Addition &addition) {
-    for (int i = 0; i < n; i++)
-        values[i] -= addition.values[i];
+    AdditionT sv1 = signs & values;
+    AdditionT sv2 = ~addition.signs & addition.values;
 
+    carry = values & addition.values & (signs ^ addition.signs);
+    values ^= addition.values;
+    signs = (sv1 | sv2) & values;
     return *this;
 }
 
 __device__ __host__ Addition::operator bool() const {
-    for (int i = 0; i < n; i++)
-        if (values[i] != 0)
-            return true;
-
-    return false;
+    return values != 0;
 }
 
 __device__ __host__ bool Addition::limit(bool firstPositiveNonZero) const {
-    bool haveNonZero = false;
+    if (carry)
+        return false;
 
-    for (int i = 0; i < n; i++) {
-        if (firstPositiveNonZero && !haveNonZero && values[i] != 0) {
-            if (values[i] < 0)
-                return false;
-
-            haveNonZero = true;
-        }
-
-        if (values[i] < LOWER_BOUND || values[i] > UPPER_BOUND)
-            return false;
-    }
+    for (int i = 0; i < n; i++)
+        if ((values >> i) & 1)
+            return ((signs >> i) & 1) == 0;
 
     return true;
 }
 
 __device__ __host__ bool Addition::limitSum(const Addition &addition, bool firstPositiveNonZero) const {
-    bool haveNonZero = false;
+    AdditionT sumCarry = values & addition.values & ~(signs ^ addition.signs);
 
-    for (int i = 0; i < n; i++) {
-        int8_t value = values[i] + addition.values[i];
+    if (sumCarry)
+        return false;
 
-        if (firstPositiveNonZero && !haveNonZero && value != 0) {
-            if (value < 0)
-                return false;
+    if (firstPositiveNonZero) {
+        AdditionT sumValues = values ^ addition.values;
+        AdditionT sumSigns = ((signs & values) | (addition.signs & addition.values)) & sumValues;
 
-            haveNonZero = true;
-        }
-
-        if (value < LOWER_BOUND || value > UPPER_BOUND)
-            return false;
+        for (int i = 0; i < n; i++)
+            if ((sumValues >> i) & 1)
+                return ((sumSigns >> i) & 1) == 0;
     }
 
     return true;
 }
 
-__device__ __host__ bool Addition::limitSub(const Addition &addition) const {
-    for (int i = 0; i < n; i++) {
-        int8_t value = values[i] - addition.values[i];
+__device__ __host__ bool Addition::limitSub(const Addition &addition, bool firstPositiveNonZero) const {
+    AdditionT subCarry = (values & addition.values & (signs ^ addition.signs));
 
-        if (value < LOWER_BOUND || value > UPPER_BOUND)
-            return false;
+    if (subCarry)
+        return false;
+
+    if (firstPositiveNonZero) {
+        AdditionT subValues = values ^ addition.values;
+        AdditionT subSigns = ((signs & values) | (~addition.signs & addition.values)) & subValues;
+
+        for (int i = 0; i < n; i++)
+            if ((subValues >> i) & 1)
+                return ((subSigns >> i) & 1) == 0;
     }
 
     return true;
-}
-
-__device__ __host__ bool Addition::positiveFirstNonZero() const {
-    int i = 0;
-
-    while (i < n && values[i] == 0)
-        i++;
-
-    return i == n || values[i] > 0;
 }
 
 __device__ __host__ bool Addition::positiveFirstNonZeroSub(const Addition &addition) const {
-    for (int i = 0; i < n; i++) {
-        int8_t value = values[i] - addition.values[i];
+    AdditionT subValues = values ^ addition.values;
+    AdditionT subSigns = ((signs & values) | (~addition.signs & addition.values)) & subValues;
 
-        if (value != 0)
-            return value > 0;
-    }
+    for (int i = 0; i < n; i++)
+        if ((subValues >> i) & 1)
+            return ((subSigns >> i) & 1) == 0;
 
     return true;
+}
+
+std::ostream& operator<<(std::ostream &os, const Addition &addition) {
+    for (int i = 0; i < addition.n; i++) {
+        if (i > 0)
+            os << ", ";
+
+        os << addition[i];
+    }
+
+    return os;
 }
