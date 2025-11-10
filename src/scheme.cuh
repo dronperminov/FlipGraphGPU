@@ -10,18 +10,12 @@
 
 #include "random.cuh"
 
+typedef uint32_t T;
+
 const int MAX_RANK = 150;
 const int MAX_MATRIX_SIZE = 7;
 const int MAX_MATRIX_ELEMENTS = MAX_MATRIX_SIZE * MAX_MATRIX_SIZE;
-
-typedef uint32_t T;
-
-struct Scheme {
-    int n[3];
-    int nn[3];
-    int m;
-    T uvw[3][MAX_RANK];
-};
+const int MAX_SIZE = 8 * sizeof(T);
 
 struct FlipCandidate {
     int first;
@@ -42,53 +36,59 @@ struct ReduceGaussCandidate {
     int size;
 };
 
-__device__ __host__ bool validateEquation(const Scheme &scheme, int i, int j, int k);
-__device__ __host__ bool validateScheme(const Scheme &scheme);
 
-__device__ void initializeNaive(Scheme &scheme, int n1, int n2, int n3);
-__device__ void initializeFrom(Scheme &scheme, int n1, int n2, int n3, int m, const T uvw[3][MAX_RANK]);
-__device__ void copyScheme(const Scheme &scheme, Scheme &target);
+struct Scheme {
+    int n[3];
+    int nn[3];
+    int m;
+    T uvw[3][MAX_RANK];
 
-__device__ void removeZeroes(Scheme &scheme);
-__device__ void removeAt(Scheme &scheme, int startIndex);
-__device__ void addTriplet(Scheme &scheme, int i, int j, int k, const T u, const T v, const T w);
+    __device__ __host__ bool validate() const;
+    __device__ __host__ void initializeNaive(int n1, int n2, int n3);
+    __device__ __host__ void initializeFrom(int n1, int n2, int n3, int m, const T uvw[3][MAX_RANK]);
+    __device__ __host__ void copyTo(Scheme &target) const;
 
-__device__ void excludeColumn(Scheme &scheme, int matrix, int column);
-__device__ void excludeRow(Scheme &scheme, int matrix, int row);
-__device__ void addColumn(Scheme &scheme, int matrix);
-__device__ void addRow(Scheme &scheme, int matrix);
+    __device__ bool tryFlip(curandState &state);
+    __device__ bool tryPlus(curandState &state);
+    __device__ bool trySplit(curandState &state);
+    __device__ bool trySplitExisted(curandState &state);
+    __device__ bool tryExpand(int count, curandState &state);
+    __device__ bool tryReduce(curandState &state);
+    __device__ bool tryReduceGauss(curandState &state);
+    __device__ bool tryProject(curandState &state, int n1 = 2, int n2 = 2, int n3 = 2);
+    __device__ bool tryExtend(curandState &state, int n1 = 7, int n2 = 7, int n3 = 7);
+    __device__ void sandwiching(curandState &state);
 
-/*************************************************** helpers ***************************************************/
-__device__ FlipCandidate getFlipCandidate(const Scheme &scheme, curandState &state);
-__device__ ReduceCandidate getReduceCandidate(const Scheme &scheme, curandState &state);
-__device__ ReduceGaussCandidate getReduceGaussCandidate(const Scheme &scheme, curandState &state);
-__device__ int findXorCombination(const Scheme &scheme, int uvwIndex, int *indices, int size, int *combination);
-__device__ void shellSort(int *indices, const T *values, int n);
-__device__ bool inverseMatrixZ2(int n, int *matrix, int *inverse);
-__device__ void invertibleMatrixZ2(int n, int *matrix, int *inverse, curandState &state);
-__device__ T matmul(const T matrix, int *left, int *right, int n1, int n2);
+    void save(const std::string &path);
+private:
+    __device__ __host__ bool validateEquation(int i, int j, int k) const;
 
-/************************************************** operators **************************************************/
-__device__ void flip(Scheme &scheme, int first, int second, int index1, int index2);
-__device__ void plus(Scheme &scheme, int i, int j, int k, int index1, int index2, int variant);
-__device__ void split(Scheme &scheme, int i, int j, int k, int index, const T a1);
-__device__ void reduceGauss(Scheme &scheme, int i, int *combination, int combinationSize);
-__device__ void reduce(Scheme &scheme, int i, int index1, int index2);
-__device__ void project(Scheme &scheme, int p, int q);
-__device__ void extend(Scheme &scheme, int p);
+    __device__ __host__ void removeZeroes();
+    __device__ __host__ void removeAt(int startIndex);
+    __device__ __host__ void addTriplet(int i, int j, int k, const T u, const T v, const T w);
 
-/********************************************** random operators ***********************************************/
-__device__ bool tryPlus(Scheme &scheme, curandState &state);
-__device__ bool tryFlip(Scheme &scheme, curandState &state);
-__device__ bool trySplit(Scheme &scheme, curandState &state);
-__device__ bool trySplitExisted(Scheme &scheme, curandState &state);
-__device__ bool tryReduceGauss(Scheme &scheme, curandState &state);
-__device__ bool tryReduce(Scheme &scheme, curandState &state);
-__device__ bool tryProject(Scheme &scheme, curandState &state);
-__device__ bool tryExtend(Scheme &scheme, curandState &state);
-__device__ void expand(Scheme &scheme, int count, curandState &state);
-__device__ void sandwiching(Scheme &scheme, curandState &state);
+    __device__ __host__ void excludeColumn(int matrix, int column);
+    __device__ __host__ void excludeRow(int matrix, int row);
+    __device__ __host__ void addColumn(int matrix);
+    __device__ __host__ void addRow(int matrix);
 
-/**************************************************** save *****************************************************/
-void saveMatrix(std::ofstream &f, std::string name, int n1, int n2, int m, const T *matrix);
-void saveScheme(const Scheme& scheme, const std::string &path);
+    __device__ FlipCandidate getFlipCandidate(curandState &state) const;
+    __device__ ReduceCandidate getReduceCandidate(curandState &state) const;
+    __device__ ReduceGaussCandidate getReduceGaussCandidate(curandState &state) const;
+
+    __device__ int findXorCombination(int uvwIndex, int *indices, int size, int *combination) const;
+    __device__ void shellSort(int *indices, const T *values, int n) const;
+    __device__ bool inverseMatrixZ2(int n, int *matrix, int *inverse) const;
+    __device__ void invertibleMatrixZ2(int n, int *matrix, int *inverse, curandState &state) const;
+    __device__ T matmul(const T matrix, int *left, int *right, int n1, int n2) const;
+
+    __device__ __host__ void flip(int first, int second, int index1, int index2);
+    __device__ __host__ void plus(int i, int j, int k, int index1, int index2, int variant);
+    __device__ __host__ void split(int i, int j, int k, int index, const T a1);
+    __device__ __host__ void reduce(int i, int index1, int index2);
+    __device__ __host__ void reduceGauss(int i, int *combination, int combinationSize);
+    __device__ __host__ void project(int p, int q);
+    __device__ __host__ void extend(int p);
+
+    void saveMatrix(std::ofstream &f, std::string name, int n1, int n2, int m, const T *matrix) const;
+};

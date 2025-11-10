@@ -15,8 +15,8 @@ int main(int argc, char* argv[]) {
     parser.add("--path", ArgType::String, "PATH", "number of flips per iterations", "schemes");
     parser.add("--block-size", ArgType::Natural, "INT", "number of cuda threads", "32");
     parser.add("--expand-probability", ArgType::Real, "REAL", "expand edge probability (divided by max iterations)", "0.1");
-    parser.add("--reduce-probability", ArgType::Real, "REAL", "reduce edge probability (divided by max iterations)", "1000");
-    parser.add("--sandwiching-probability", ArgType::Real, "REAL", "sandwiching edge probability (divided by max iterations)", "10");
+    parser.add("--reduce-probability", ArgType::Real, "REAL", "reduce edge probability (divided by max iterations)", "1");
+    parser.add("--sandwiching-probability", ArgType::Real, "REAL", "sandwiching edge probability (divided by max iterations)", "0.1");
     parser.add("--project-probability", ArgType::Real, "REAL", "project edge probability", "0.2");
     parser.add("--extend-probability", ArgType::Real, "REAL", "extend edge probability", "0.2");
     parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
@@ -43,9 +43,8 @@ int main(int argc, char* argv[]) {
     if (seed == 0)
         seed = time(0);
 
-    int maxSize = sizeof(T) * 8;
-    if (n1 * n2 > maxSize || n2 * n3 > maxSize || n1 * n3 > maxSize) {
-        std::cout << "Error sizes, please increase bit size of T (now: " << (sizeof(T) * 8) << ")" << std::endl;
+    if (n1 * n2 > MAX_SIZE || n2 * n3 > MAX_SIZE || n1 * n3 > MAX_SIZE) {
+        std::cout << "Error sizes, please increase MAX_SIZE (now: " << MAX_SIZE << ")" << std::endl;
         return 0;
     }
 

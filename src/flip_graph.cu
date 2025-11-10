@@ -73,7 +73,7 @@ void FlipGraph::updateRanks(int iteration) {
 
     for (auto pair : n2bestIndex) {
         std::string savePath = getSavePath(schemes[pair.second], iteration, pair.second);
-        saveScheme(schemes[pair.second], savePath);
+        schemes[pair.second].save(savePath);
         std::cout << "Best rank of " << pair.first << " was improved to " << bestRanks[pair.second] << "! Scheme saved to \"" << savePath << "\"" << std::endl;
     }
 
@@ -122,10 +122,14 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
 
         if (bestRanks[index] < n2bestRank[n]) {
             std::string savePath = getSavePath(schemesBest[index], iteration, index);
-            saveScheme(schemesBest[index], savePath);
+            schemesBest[index].save(savePath);
 
             std::cout << "Best rank of " << n << " was improved from " << n2bestRank[n] << " to " << bestRanks[index] << "! Scheme saved to \"" << savePath << "\"" << std::endl;
             n2bestRank[n] = bestRanks[index];
+
+            for (auto i : pair.second)
+                if (i % iteration == 0)
+                    schemesBest[index].copyTo(schemes[i]);
         }
     }
 
@@ -141,7 +145,7 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
         for (int i = 0; i < count && i < indices.size(); i++) {
             Scheme &scheme = schemes[indices[i]];
 
-            if (!validateScheme(scheme))
+            if (!scheme.validate())
                 throw std::runtime_error("Invalid scheme");
 
             std::cout << "| ";
@@ -270,12 +274,12 @@ __global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, in
     if (idx >= schemesCount)
         return;
 
-    initializeNaive(schemes[idx], n1, n2, n3);
+    schemes[idx].initializeNaive(n1, n2, n3);
 
-    if (!validateScheme(schemes[idx]))
+    if (!schemes[idx].validate())
         printf("not valid initialized scheme %d\n", idx);
 
-    copyScheme(schemes[idx], schemesBest[idx]);
+    schemes[idx].copyTo(schemesBest[idx]);
     curand_init(seed, idx, 0, &states[idx]);
 
     bestRanks[idx] = n1 * n2 * n3;
@@ -294,27 +298,27 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
     int bestRank = bestRanks[idx];
 
     for (int iteration = 0; iteration < maxIterations; iteration++) {
-        if (!tryFlip(scheme, state)) {
-            expand(scheme, randint(1, 2, state), state);
+        if (!scheme.tryFlip(state)) {
+            scheme.tryExpand(randint(1, 2, state), state);
             continue;
+        }
 
         flipsCount++;
 
         if (scheme.m < bestRank) {
             bestRank = scheme.m;
-            copyScheme(scheme, schemesBest[idx]);
+            scheme.copyTo(schemesBest[idx]);
         }
 
         if (curand_uniform(&state) * maxIterations < reduceProbability) {
-            tryReduce(scheme, state);
-            tryReduceGauss(scheme, state);
+            scheme.tryReduce(state);
         }
 
         if (curand_uniform(&state) * maxIterations < expandProbability)
-            expand(scheme, randint(1, 2, state), state);
+            scheme.tryExpand(randint(1, 2, state), state);
 
         if (curand_uniform(&state) * maxIterations < sandwichingProbability)
-            sandwiching(scheme, state);
+            scheme.sandwiching(state);
     }
 
     flips[idx] = flipsCount;
@@ -331,8 +335,8 @@ __global__ void projectExtendKernel(Scheme *schemes, int schemesCount, curandSta
     curandState &state = states[idx];
 
     if (curand_uniform(&state) < extendProbability)
-        tryExtend(scheme, state);
+        scheme.tryExtend(state);
 
     if (curand_uniform(&state) < projectProbability)
-        tryProject(scheme, state);
+        scheme.tryProject(state);
 }
