@@ -1,4 +1,4 @@
-#include "scheme.cuh"
+#include "scheme_z2.cuh"
 
 __device__ __host__ bool Scheme::validateEquation(int i, int j, int k) const {
     int i1 = i / n[1];

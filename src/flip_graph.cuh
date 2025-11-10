@@ -12,9 +12,15 @@
 #include <vector>
 #include <unordered_map>
 
-#include "scheme.cuh"
 #include "random.cuh"
 
+#define SCHEME_INTEGER
+
+#ifdef SCHEME_INTEGER
+#include "scheme_integer.cuh"
+#else
+#include "scheme_z2.cuh"
+#endif
 
 struct FlipGraphProbabilities {
     double extend;
