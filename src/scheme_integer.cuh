@@ -33,7 +33,7 @@ struct SchemeInteger {
     __device__ bool tryProject(curandState &state, int n1 = 2, int n2 = 2, int n3 = 2);
     __device__ bool tryExtend(curandState &state, int n1 = 7, int n2 = 7, int n3 = 7);
     __device__ void sandwiching(curandState &state);
-
+    __device__ void swapBasis(curandState &state);
 
     void save(const std::string &path);
     void show() const;
@@ -48,6 +48,7 @@ private:
     __device__ __host__ void excludeRow(int matrix, int row);
     __device__ __host__ void addColumn(int matrix);
     __device__ __host__ void addRow(int matrix);
+    __device__ __host__ bool fixSigns();
 
     __device__ __host__ void flip(int i, int j, int k, int index1, int index2, bool checkReduce = true);
     __device__ __host__ void plus(int i, int j, int k, int index1, int index2, int variant);
@@ -56,6 +57,8 @@ private:
     __device__ __host__ void reduceSub(int i, int index1, int index2);
     __device__ __host__ void project(int p, int q);
     __device__ __host__ void extend(int p);
+    __device__ __host__ void swapBasisRows(int i1, int i2);
+    __device__ __host__ void swapBasisColumns(int j1, int j2);
 
     void saveMatrix(std::ofstream &f, std::string name, int m, const Addition *additions) const;
     void showTensor(const Addition &addition, int n1, int n2, std::string name, bool transpose) const;

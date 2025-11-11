@@ -404,6 +404,87 @@ __device__ __host__ void SchemeInteger::extend(int p) {
         printf("extend: invalid scheme %d (%d, %d, %d)\n", p, n[0], n[1], n[2]);
 }
 
+__device__ __host__ void SchemeInteger::swapBasisRows(int i1, int i2) {
+    int rows[MAX_MATRIX_SIZE];
+
+    for (int row = 0; row < n[0]; row++)
+        rows[row] = row;
+
+    rows[i1] = i2;
+    rows[i2] = i1;
+
+    for (int index = 0; index < m; index++) {
+        Addition u(n[0] * n[1]);
+        Addition w(n[2] * n[0]);
+
+        for (int i = 0; i < n[0]; i++)
+            for (int j = 0; j < n[1]; j++)
+                u.set(i * n[1] + j, uvw[0][index][rows[i] * n[1] + j]);
+
+        for (int i = 0; i < n[2]; i++)
+            for (int j = 0; j < n[0]; j++)
+                w.set(i * n[0] + j, uvw[2][index][i * n[0] + rows[j]]);
+
+        uvw[0][index] = u;
+        uvw[2][index] = w;
+    }
+}
+
+__device__ __host__ void SchemeInteger::swapBasisColumns(int j1, int j2) {
+    int columns[MAX_MATRIX_SIZE];
+
+    for (int column = 0; column < n[1]; column++)
+        columns[column] = column;
+
+    columns[j1] = j2;
+    columns[j2] = j1;
+
+    for (int index = 0; index < m; index++) {
+        Addition v(n[1] * n[2]);
+        Addition w(n[2] * n[0]);
+
+        for (int i = 0; i < n[1]; i++)
+            for (int j = 0; j < n[2]; j++)
+                v.set(i * n[2] + j, uvw[1][index][i * n[2] + columns[j]]);
+
+        for (int i = 0; i < n[2]; i++)
+            for (int j = 0; j < n[0]; j++)
+                w.set(i * n[0] + j, uvw[2][index][columns[i] * n[0] + j]);
+
+        uvw[1][index] = v;
+        uvw[2][index] = w;
+    }
+}
+
+__device__ __host__ bool SchemeInteger::fixSigns() {
+    bool changed = false;
+
+    for (int index = 0; index < m; index++) {
+        bool i = uvw[0][index].positiveFirstNonZero();
+        bool j = uvw[1][index].positiveFirstNonZero();
+
+        if (i && j)
+            continue;
+
+        if (!i && !j) {
+            uvw[0][index].inverse();
+            uvw[1][index].inverse();
+        }
+        else if (!i) {
+            uvw[0][index].inverse();
+            uvw[2][index].inverse();
+        }
+        else {
+            uvw[1][index].inverse();
+            uvw[2][index].inverse();
+        }
+
+        changed = true;
+    }
+
+    return changed;
+}
+
 /*************************************************** random operators ****************************************************/
 __device__ bool SchemeInteger::tryFlip(curandState &state) {
     int size = flips[0].size + flips[1].size + flips[2].size;
@@ -623,6 +704,22 @@ __device__ bool SchemeInteger::tryExtend(curandState &state, int n1, int n2, int
 
 __device__ void SchemeInteger::sandwiching(curandState &state) {
     // TODO
+}
+
+__device__ void SchemeInteger::swapBasis(curandState &state) {
+    if (curand(&state) % 2) {
+        int i1 = curand(&state) % n[0];
+        int i2 = curand(&state) % n[0];
+        swapBasisRows(i1, i2);
+    }
+    else {
+        int j1 = curand(&state) % n[1];
+        int j2 = curand(&state) % n[1];
+        swapBasisColumns(j1, j2);
+    }
+
+    if (fixSigns())
+        initFlips();
 }
 
 /**************************************************** save *****************************************************/

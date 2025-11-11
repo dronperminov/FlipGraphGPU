@@ -53,7 +53,7 @@ void FlipGraph::initialize() {
 }
 
 void FlipGraph::optimize() {
-    randomWalkKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, schemesCount, maxIterations, probabilities.reduce, probabilities.expand, probabilities.sandwiching);
+    randomWalkKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, schemesCount, maxIterations, probabilities.reduce, probabilities.expand, probabilities.sandwiching, probabilities.basis);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -303,7 +303,7 @@ __global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, in
     flips[idx] = 0;
 }
 
-__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, double reduceProbability, double expandProbability, double sandwichingProbability) {
+__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, double reduceProbability, double expandProbability, double sandwichingProbability, double basisProbability) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= schemesCount)
@@ -336,6 +336,9 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
 
         if (curand_uniform(&state) * maxIterations < sandwichingProbability)
             scheme.sandwiching(state);
+
+        if (curand_uniform(&state) * maxIterations < basisProbability)
+            scheme.swapBasis(state);
     }
 
     flips[idx] = flipsCount;

@@ -17,6 +17,7 @@ int main(int argc, char* argv[]) {
     parser.add("--expand-probability", ArgType::Real, "REAL", "expand edge probability (divided by max iterations)", "0.1");
     parser.add("--reduce-probability", ArgType::Real, "REAL", "reduce edge probability (divided by max iterations)", "1");
     parser.add("--sandwiching-probability", ArgType::Real, "REAL", "sandwiching edge probability (divided by max iterations)", "0.1");
+    parser.add("--basis-probability", ArgType::Real, "REAL", "basis edge probability (divided by max iterations)", "0.1");
     parser.add("--project-probability", ArgType::Real, "REAL", "project edge probability", "0.2");
     parser.add("--extend-probability", ArgType::Real, "REAL", "extend edge probability", "0.2");
     parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
@@ -37,6 +38,7 @@ int main(int argc, char* argv[]) {
     probabilities.expand = std::stod(parser.get("--expand-probability"));
     probabilities.reduce = std::stod(parser.get("--reduce-probability"));
     probabilities.sandwiching = std::stod(parser.get("--sandwiching-probability"));
+    probabilities.basis = std::stod(parser.get("--basis-probability"));
     probabilities.project = std::stod(parser.get("--project-probability"));
     probabilities.extend = std::stod(parser.get("--extend-probability"));
 
@@ -63,6 +65,7 @@ int main(int argc, char* argv[]) {
     std::cout << "  - expand: " << probabilities.expand << std::endl;
     std::cout << "  - reduce: " << probabilities.reduce << std::endl;
     std::cout << "  - sandwiching: " << probabilities.sandwiching << std::endl;
+    std::cout << "  - basis: " << probabilities.basis << std::endl;
     std::cout << "  - project: " << probabilities.project << std::endl;
     std::cout << "  - extend: " << probabilities.extend << std::endl;
     std::cout << "- seed: " << seed << std::endl;

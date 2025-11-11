@@ -59,6 +59,10 @@ __device__ __host__ void Addition::set(int index, int value) {
     }
 }
 
+__device__ __host__ void Addition::inverse() {
+    signs = (~signs) & values;
+}
+
 __device__ __host__ bool Addition::operator==(const Addition &addition) const {
     return values == addition.values && signs == addition.signs;
 }

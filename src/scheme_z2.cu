@@ -591,6 +591,58 @@ __device__ __host__ void SchemeZ2::extend(int p) {
         printf("extend: invalid scheme %d (%d, %d, %d)\n", p, n[0], n[1], n[2]);
 }
 
+__device__ __host__ void SchemeZ2::swapBasisRows(int i1, int i2) {
+    int rows[MAX_MATRIX_SIZE];
+
+    for (int row = 0; row < n[0]; row++)
+        rows[row] = row;
+
+    rows[i1] = i2;
+    rows[i2] = i1;
+
+    for (int index = 0; index < m; index++) {
+        T u = 0;
+        T w = 0;
+
+        for (int i = 0; i < n[0]; i++)
+            for (int j = 0; j < n[1]; j++)
+                u |= ((uvw[0][index] >> (rows[i] * n[1] + j)) & 1) << (i * n[1] + j);
+
+        for (int i = 0; i < n[2]; i++)
+            for (int j = 0; j < n[0]; j++)
+                w |= ((uvw[2][index] >> (i * n[0] + rows[j])) & 1) << (i * n[0] + j);
+
+        uvw[0][index] = u;
+        uvw[2][index] = w;
+    }
+}
+
+__device__ __host__ void SchemeZ2::swapBasisColumns(int j1, int j2) {
+    int columns[MAX_MATRIX_SIZE];
+
+    for (int column = 0; column < n[1]; column++)
+        columns[column] = column;
+
+    columns[j1] = j2;
+    columns[j2] = j1;
+
+    for (int index = 0; index < m; index++) {
+        T v = 0;
+        T w = 0;
+
+        for (int i = 0; i < n[1]; i++)
+            for (int j = 0; j < n[2]; j++)
+                v |= ((uvw[1][index] >> (i * n[2] + columns[j])) & 1) << (i * n[2] + j);
+
+        for (int i = 0; i < n[2]; i++)
+            for (int j = 0; j < n[0]; j++)
+                w |= ((uvw[2][index] >> (columns[i] * n[0] + j)) & 1) << (i * n[0] + j);
+
+        uvw[1][index] = v;
+        uvw[2][index] = w;
+    }
+}
+
 /*************************************************** random operators ****************************************************/
 __device__ bool SchemeZ2::tryFlip(curandState &state) {
     int size = flips[0].size + flips[1].size + flips[2].size;
@@ -843,6 +895,19 @@ __device__ void SchemeZ2::sandwiching(curandState &state) {
     }
 
     initFlips();
+}
+
+__device__ void SchemeZ2::swapBasis(curandState &state) {
+    if (curand(&state) % 2) {
+        int i1 = curand(&state) % n[0];
+        int i2 = curand(&state) % n[0];
+        swapBasisRows(i1, i2);
+    }
+    else {
+        int j1 = curand(&state) % n[1];
+        int j2 = curand(&state) % n[1];
+        swapBasisColumns(j1, j2);
+    }
 }
 
 /**************************************************** save *****************************************************/
