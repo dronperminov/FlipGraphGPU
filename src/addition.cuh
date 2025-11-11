@@ -24,6 +24,7 @@ struct Addition {
 
     __device__ __host__ Addition operator+(const Addition &addition) const;
     __device__ __host__ Addition operator-(const Addition &addition) const;
+    __device__ __host__ Addition operator-() const;
 
     __device__ __host__ Addition& operator+=(const Addition &addition);
     __device__ __host__ Addition& operator-=(const Addition &addition);

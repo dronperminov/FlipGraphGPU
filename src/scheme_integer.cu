@@ -25,6 +25,15 @@ __device__ __host__ bool SchemeInteger::validate() const {
             for (int k = 0; k < nn[2] && valid; k++)
                 valid &= validateEquation(i, j, k);
 
+    for (int index = 0;index < m; index++) {
+        for (int i = 0; i < 3; i++) {
+            if (uvw[i][index].carry) {
+                printf("carry number\n");
+                return false;
+            }
+        }
+    }
+
     return valid;
 }
 
@@ -101,16 +110,15 @@ __device__ __host__ void SchemeInteger::initFlips() {
 }
 
 __device__ __host__ void SchemeInteger::removeZeroes() {
-    while (m > 0 && !(uvw[0][m - 1] && uvw[1][m - 1] && uvw[2][m - 1]))
-        m--;
-
     for (int index = 0; index < m; index++) {
-        if (!(uvw[0][index] && uvw[1][index] && uvw[2][index])) {
-            m--;
-            uvw[0][index] = uvw[0][m];
-            uvw[1][index] = uvw[1][m];
-            uvw[2][index] = uvw[2][m];
-        }
+        if (uvw[0][index] && uvw[1][index] && uvw[2][index])
+            continue;
+
+        m--;
+        uvw[0][index] = uvw[0][m];
+        uvw[1][index] = uvw[1][m];
+        uvw[2][index] = uvw[2][m];
+        index--;
     }
 }
 
@@ -149,7 +157,7 @@ __device__ __host__ void SchemeInteger::excludeColumn(int matrix, int column) {
             for (int j = 0; j < n2 - 1; j++)
                 value.set(i * (n2 - 1) + j, uvw[matrix][index][i * n2 + oldColumns[j]]);
 
-        value.copyTo(uvw[matrix][index]);
+        uvw[matrix][index] = value;
     }
 }
 
@@ -170,7 +178,7 @@ __device__ __host__ void SchemeInteger::excludeRow(int matrix, int row) {
             for (int j = 0; j < n2; j++)
                 value.set(i * n2 + j, uvw[matrix][index][oldRows[i] * n2 + j]);
 
-        value.copyTo(uvw[matrix][index]);
+        uvw[matrix][index] = value;
     }
 }
 
@@ -185,7 +193,7 @@ __device__ __host__ void SchemeInteger::addColumn(int matrix) {
             for (int j = 0; j < n2; j++)
                 value.set(i * (n2 + 1) + j, uvw[matrix][index][i * n2 + j]);
 
-        value.copyTo(uvw[matrix][index]);
+        uvw[matrix][index] = value;
     }
 }
 
@@ -200,7 +208,7 @@ __device__ __host__ void SchemeInteger::addRow(int matrix) {
             for (int j = 0; j < n2; j++)
                 value.set(i * n2 + j, uvw[matrix][index][i * n2 + j]);
 
-        value.copyTo(uvw[matrix][index]);
+        uvw[matrix][index] = value;
     }
 }
 
@@ -215,6 +223,9 @@ __device__ __host__ void SchemeInteger::flip(int i, int j, int k, int index1, in
     if (!uvw[j][index1] || !uvw[k][index2]) {
         removeZeroes();
         initFlips();
+
+        while (tryReduce())
+            ;
         return;
     }
 
@@ -222,12 +233,22 @@ __device__ __host__ void SchemeInteger::flip(int i, int j, int k, int index1, in
         if (index != index1 && uvw[j][index] == uvw[j][index1]) {
             if (checkReduce) {
                 if (uvw[i][index] == uvw[i][index1] && uvw[k][index].limitSum(uvw[k][index1], k != 2)) {
-                    reduce(k, index, index1);
+                    reduceAdd(k, index, index1);
+                    return;
+                }
+
+                if (i == 2 && uvw[i][index] == -uvw[i][index1] && uvw[k][index].limitSub(uvw[k][index1], k != 2)) {
+                    reduceSub(k, index, index1);
                     return;
                 }
 
                 if (uvw[k][index] == uvw[k][index1] && uvw[i][index].limitSum(uvw[i][index1], i != 2)) {
-                    reduce(i, index, index1);
+                    reduceAdd(i, index, index1);
+                    return;
+                }
+
+                if (k == 2 && uvw[k][index] == -uvw[k][index1] && uvw[i][index].limitSub(uvw[i][index1], i != 2)) {
+                    reduceSub(i, index, index1);
                     return;
                 }
             }
@@ -237,13 +258,23 @@ __device__ __host__ void SchemeInteger::flip(int i, int j, int k, int index1, in
 
         if (index != index2 && uvw[k][index] == uvw[k][index2]) {
             if (checkReduce) {
-                if (uvw[i][index] == uvw[i][index2] && uvw[j][index].limitSum(uvw[j][index1], j != 2)) {
-                    reduce(j, index, index2);
+                if (uvw[i][index] == uvw[i][index2] && uvw[j][index].limitSum(uvw[j][index2], j != 2)) {
+                    reduceAdd(j, index, index2);
                     return;
                 }
 
-                if (uvw[j][index] == uvw[j][index2] && uvw[i][index].limitSum(uvw[i][index1], i != 2)) {
-                    reduce(i, index, index2);
+                if (i == 2 && uvw[i][index] == -uvw[i][index2] && uvw[j][index].limitSub(uvw[j][index2], j != 2)) {
+                    reduceSub(j, index, index2);
+                    return;
+                }
+
+                if (uvw[j][index] == uvw[j][index2] && uvw[i][index].limitSum(uvw[i][index2], i != 2)) {
+                    reduceAdd(i, index, index2);
+                    return;
+                }
+
+                if (j == 2 && uvw[j][index] == -uvw[j][index2] && uvw[i][index].limitSub(uvw[i][index2], i != 2)) {
+                    reduceSub(i, index, index2);
                     return;
                 }
             }
@@ -297,8 +328,20 @@ __device__ __host__ void SchemeInteger::split(int i, int j, int k, int index, co
     initFlips();
 }
 
-__device__ __host__ void SchemeInteger::reduce(int i, int index1, int index2) {
+__device__ __host__ void SchemeInteger::reduceAdd(int i, int index1, int index2) {
     uvw[i][index1] += uvw[i][index2];
+    bool isZero = !uvw[i][index1];
+
+    removeAt(index2);
+
+    if (isZero)
+        removeZeroes();
+
+    initFlips();
+}
+
+__device__ __host__ void SchemeInteger::reduceSub(int i, int index1, int index2) {
+    uvw[i][index1] -= uvw[i][index2];
     bool isZero = !uvw[i][index1];
 
     removeAt(index2);
@@ -489,18 +532,23 @@ __device__ bool SchemeInteger::tryExpand(int count, curandState &state) {
     return result;
 }
 
-__device__ bool SchemeInteger::tryReduce(curandState &state) {
+__device__ __host__ bool SchemeInteger::tryReduce() {
     for (size_t i = 0; i < flips[0].size; i++) {
         int index1 = flips[0].index1(i);
         int index2 = flips[0].index2(i);
 
         if (uvw[1][index1] == uvw[1][index2] && uvw[2][index1].limitSum(uvw[2][index2], false)) {
-            reduce(2, index1, index2);
+            reduceAdd(2, index1, index2);
             return true;
         }
 
-        if (uvw[2][index1] == uvw[2][index2] && uvw[1][index1].limitSum(uvw[1][index2], false)) {
-            reduce(1, index1, index2);
+        if (uvw[2][index1] == uvw[2][index2] && uvw[1][index1].limitSum(uvw[1][index2], true)) {
+            reduceAdd(1, index1, index2);
+            return true;
+        }
+
+        if (uvw[2][index1] == -uvw[2][index2] && uvw[1][index1].limitSub(uvw[1][index2], true)) {
+            reduceSub(1, index1, index2);
             return true;
         }
     }
@@ -510,7 +558,12 @@ __device__ bool SchemeInteger::tryReduce(curandState &state) {
         int index2 = flips[1].index2(i);
 
         if (uvw[2][index1] == uvw[2][index2] && uvw[0][index1].limitSum(uvw[0][index2], true)) {
-            reduce(0, index1, index2);
+            reduceAdd(0, index1, index2);
+            return true;
+        }
+
+        if (uvw[2][index1] == -uvw[2][index2] && uvw[0][index1].limitSub(uvw[0][index2], true)) {
+            reduceSub(0, index1, index2);
             return true;
         }
     }
@@ -538,7 +591,7 @@ __device__ bool SchemeInteger::tryProject(curandState &state, int n1, int n2, in
     int q = curand(&state) % n[p];
     project(p, q);
 
-    while (tryReduce(state))
+    while (tryReduce())
         ;
 
     return true;
@@ -562,7 +615,7 @@ __device__ bool SchemeInteger::tryExtend(curandState &state, int n1, int n2, int
 
     extend(indices[curand(&state) % size]);
 
-    while (tryReduce(state))
+    while (tryReduce())
         ;
 
     return true;

@@ -328,7 +328,7 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
         }
 
         if (curand_uniform(&state) * maxIterations < reduceProbability) {
-            scheme.tryReduce(state);
+            scheme.tryReduce();
         }
 
         if (curand_uniform(&state) * maxIterations < expandProbability)
@@ -340,6 +340,9 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
 
     flips[idx] = flipsCount;
     bestRanks[idx] = bestRank;
+
+    if (!scheme.validate())
+        printf("invalid (%d) scheme (random walk)\n", idx);
 }
 
 __global__ void projectExtendKernel(Scheme *schemes, int schemesCount, curandState *states, double extendProbability, double projectProbability) {
@@ -351,9 +354,17 @@ __global__ void projectExtendKernel(Scheme *schemes, int schemesCount, curandSta
     Scheme &scheme = schemes[idx];
     curandState &state = states[idx];
 
-    if (curand_uniform(&state) < extendProbability)
-        scheme.tryExtend(state);
+    if (curand_uniform(&state) < extendProbability) {
+        int count = randint(1, 6, state);
 
-    if (curand_uniform(&state) < projectProbability)
-        scheme.tryProject(state);
+        while (count && scheme.tryExtend(state))
+            count--;
+    }
+
+    if (curand_uniform(&state) < projectProbability) {
+        int count = randint(1, 6, state);
+
+        while (count && scheme.tryProject(state))
+            count--;
+    }
 }

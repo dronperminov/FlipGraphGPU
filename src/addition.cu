@@ -94,6 +94,14 @@ __device__ __host__ Addition Addition::operator-(const Addition &addition) const
     return result;
 }
 
+__device__ __host__ Addition Addition::operator-() const {
+    Addition result(n);
+    result.values = values;
+    result.signs = (~signs) & values;
+    result.carry = carry;
+    return result;
+}
+
 __device__ __host__ Addition& Addition::operator+=(const Addition &addition) {
     T sv1 = signs & values;
     T sv2 = addition.signs & addition.values;
@@ -122,9 +130,11 @@ __device__ __host__ bool Addition::limit(bool firstPositiveNonZero) const {
     if (carry)
         return false;
 
-    for (int i = 0; i < n; i++)
-        if ((values >> i) & 1)
-            return ((signs >> i) & 1) == 0;
+    if (firstPositiveNonZero) {
+        for (int i = 0; i < n; i++)
+            if ((values >> i) & 1)
+                return ((signs >> i) & 1) == 0;
+    }
 
     return true;
 }
@@ -172,6 +182,14 @@ __device__ __host__ bool Addition::positiveFirstNonZeroSub(const Addition &addit
     for (int i = 0; i < n; i++)
         if ((subValues >> i) & 1)
             return ((subSigns >> i) & 1) == 0;
+
+    return true;
+}
+
+__device__ __host__ bool Addition::positiveFirstNonZero() const {
+    for (int i = 0; i < n; i++)
+        if ((values >> i) & 1)
+            return ((signs >> i) & 1) == 0;
 
     return true;
 }

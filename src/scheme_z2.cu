@@ -723,7 +723,7 @@ __device__ bool SchemeZ2::tryReduceGauss(curandState &state) {
     return true;
 }
 
-__device__ bool SchemeZ2::tryReduce(curandState &state) {
+__device__ bool SchemeZ2::tryReduce() {
     for (size_t i = 0; i < flips[0].size; i++) {
         int index1 = flips[0].index1(i);
         int index2 = flips[0].index2(i);
@@ -772,7 +772,7 @@ __device__ bool SchemeZ2::tryProject(curandState &state, int n1, int n2, int n3)
     int q = curand(&state) % n[p];
     project(p, q);
 
-    while (tryReduce(state))
+    while (tryReduce())
         ;
 
     return true;
@@ -796,7 +796,7 @@ __device__ bool SchemeZ2::tryExtend(curandState &state, int n1, int n2, int n3) 
 
     extend(indices[curand(&state) % size]);
 
-    while (tryReduce(state))
+    while (tryReduce())
         ;
 
     return true;
