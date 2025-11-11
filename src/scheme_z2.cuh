@@ -11,20 +11,13 @@
 #include "random.cuh"
 #include "flip_set.cuh"
 
-typedef uint32_t T;
-
-const int MAX_RANK = 150;
-const int MAX_MATRIX_SIZE = 7;
-const int MAX_MATRIX_ELEMENTS = MAX_MATRIX_SIZE * MAX_MATRIX_SIZE;
-const int MAX_SIZE = 8 * sizeof(T);
-
 struct ReduceGaussCandidate {
     int i;
     int combination[MAX_RANK];
     int size;
 };
 
-struct Scheme {
+struct SchemeZ2 {
     int n[3];
     int nn[3];
     int m;
@@ -34,7 +27,7 @@ struct Scheme {
     __device__ __host__ bool validate() const;
     __device__ __host__ void initializeNaive(int n1, int n2, int n3);
     __device__ __host__ void initializeFrom(int n1, int n2, int n3, int m, const T uvw[3][MAX_RANK]);
-    __device__ __host__ void copyTo(Scheme &target) const;
+    __device__ __host__ void copyTo(SchemeZ2 &target) const;
 
     __device__ bool tryFlip(curandState &state);
     __device__ bool tryPlus(curandState &state);

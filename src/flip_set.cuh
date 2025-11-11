@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include "config.cuh"
 
-const int MAX_PAIRS = 150 * 149 / 2;
+const int MAX_PAIRS = MAX_RANK * (MAX_RANK - 1) / 2;
 
 struct FlipSet {
     size_t size;

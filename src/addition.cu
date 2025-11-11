@@ -16,7 +16,7 @@ __device__ __host__ Addition::Addition(int n) {
 
 __device__ __host__ Addition::Addition(int n, int index) {
     this->n = n;
-    this->values = AdditionT(1) << index;
+    this->values = T(1) << index;
     this->signs = 0;
     this->carry = 0;
 }
@@ -39,7 +39,7 @@ __device__ __host__ void Addition::copyTo(Addition &target) const {
 }
 
 __device__ __host__ void Addition::set(int index, int value) {
-    AdditionT mask = AdditionT(1) << index;
+    T mask = T(1) << index;
     carry &= ~mask;
 
     if (value == 0) {
@@ -95,8 +95,8 @@ __device__ __host__ Addition Addition::operator-(const Addition &addition) const
 }
 
 __device__ __host__ Addition& Addition::operator+=(const Addition &addition) {
-    AdditionT sv1 = signs & values;
-    AdditionT sv2 = addition.signs & addition.values;
+    T sv1 = signs & values;
+    T sv2 = addition.signs & addition.values;
 
     carry = values & addition.values & ~(signs ^ addition.signs);
     values ^= addition.values;
@@ -105,8 +105,8 @@ __device__ __host__ Addition& Addition::operator+=(const Addition &addition) {
 }
 
 __device__ __host__ Addition& Addition::operator-=(const Addition &addition) {
-    AdditionT sv1 = signs & values;
-    AdditionT sv2 = ~addition.signs & addition.values;
+    T sv1 = signs & values;
+    T sv2 = ~addition.signs & addition.values;
 
     carry = values & addition.values & (signs ^ addition.signs);
     values ^= addition.values;
@@ -130,14 +130,14 @@ __device__ __host__ bool Addition::limit(bool firstPositiveNonZero) const {
 }
 
 __device__ __host__ bool Addition::limitSum(const Addition &addition, bool firstPositiveNonZero) const {
-    AdditionT sumCarry = values & addition.values & ~(signs ^ addition.signs);
+    T sumCarry = values & addition.values & ~(signs ^ addition.signs);
 
     if (sumCarry)
         return false;
 
     if (firstPositiveNonZero) {
-        AdditionT sumValues = values ^ addition.values;
-        AdditionT sumSigns = ((signs & values) | (addition.signs & addition.values)) & sumValues;
+        T sumValues = values ^ addition.values;
+        T sumSigns = ((signs & values) | (addition.signs & addition.values)) & sumValues;
 
         for (int i = 0; i < n; i++)
             if ((sumValues >> i) & 1)
@@ -148,14 +148,14 @@ __device__ __host__ bool Addition::limitSum(const Addition &addition, bool first
 }
 
 __device__ __host__ bool Addition::limitSub(const Addition &addition, bool firstPositiveNonZero) const {
-    AdditionT subCarry = (values & addition.values & (signs ^ addition.signs));
+    T subCarry = (values & addition.values & (signs ^ addition.signs));
 
     if (subCarry)
         return false;
 
     if (firstPositiveNonZero) {
-        AdditionT subValues = values ^ addition.values;
-        AdditionT subSigns = ((signs & values) | (~addition.signs & addition.values)) & subValues;
+        T subValues = values ^ addition.values;
+        T subSigns = ((signs & values) | (~addition.signs & addition.values)) & subValues;
 
         for (int i = 0; i < n; i++)
             if ((subValues >> i) & 1)
@@ -166,8 +166,8 @@ __device__ __host__ bool Addition::limitSub(const Addition &addition, bool first
 }
 
 __device__ __host__ bool Addition::positiveFirstNonZeroSub(const Addition &addition) const {
-    AdditionT subValues = values ^ addition.values;
-    AdditionT subSigns = ((signs & values) | (~addition.signs & addition.values)) & subValues;
+    T subValues = values ^ addition.values;
+    T subSigns = ((signs & values) | (~addition.signs & addition.values)) & subValues;
 
     for (int i = 0; i < n; i++)
         if ((subValues >> i) & 1)

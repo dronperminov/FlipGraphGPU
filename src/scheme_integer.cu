@@ -1,6 +1,6 @@
 #include "scheme_integer.cuh"
 
-__device__ __host__ bool Scheme::validateEquation(int i, int j, int k) const {
+__device__ __host__ bool SchemeInteger::validateEquation(int i, int j, int k) const {
     int i1 = i / n[1];
     int i2 = i % n[1];
     int j1 = j / n[2];
@@ -17,7 +17,7 @@ __device__ __host__ bool Scheme::validateEquation(int i, int j, int k) const {
     return equation == target;
 }
 
-__device__ __host__ bool Scheme::validate() const {
+__device__ __host__ bool SchemeInteger::validate() const {
     bool valid = true;
 
     for (int i = 0; i < nn[0] && valid; i++)
@@ -29,7 +29,7 @@ __device__ __host__ bool Scheme::validate() const {
 }
 
 /*************************************************** device functions ****************************************************/
-__device__ __host__ void Scheme::initializeNaive(int n1, int n2, int n3) {
+__device__ __host__ void SchemeInteger::initializeNaive(int n1, int n2, int n3) {
     n[0] = n1;
     n[1] = n2;
     n[2] = n3;
@@ -54,7 +54,7 @@ __device__ __host__ void Scheme::initializeNaive(int n1, int n2, int n3) {
     initFlips();
 }
 
-__device__ __host__ void Scheme::initializeFrom(int n1, int n2, int n3, int m, int scheme[3][MAX_RANK][MAX_MATRIX_ELEMENTS]) {
+__device__ __host__ void SchemeInteger::initializeFrom(int n1, int n2, int n3, int m, int scheme[3][MAX_RANK][MAX_MATRIX_ELEMENTS]) {
     n[0] = n1;
     n[1] = n2;
     n[2] = n3;
@@ -75,7 +75,7 @@ __device__ __host__ void Scheme::initializeFrom(int n1, int n2, int n3, int m, i
         printf("not valid from scheme %d %d %d %d\n", n1, n2, n3, m);
 }
 
-__device__ __host__ void Scheme::copyTo(Scheme &target) {
+__device__ __host__ void SchemeInteger::copyTo(SchemeInteger &target) {
     target.m = m;
 
     for (int i = 0; i < 3; i++) {
@@ -89,7 +89,7 @@ __device__ __host__ void Scheme::copyTo(Scheme &target) {
     target.initFlips();
 }
 
-__device__ __host__ void Scheme::initFlips() {
+__device__ __host__ void SchemeInteger::initFlips() {
     for (int i = 0; i < 3; i++) {
         flips[i].clear();
 
@@ -100,7 +100,7 @@ __device__ __host__ void Scheme::initFlips() {
     }
 }
 
-__device__ __host__ void Scheme::removeZeroes() {
+__device__ __host__ void SchemeInteger::removeZeroes() {
     while (m > 0 && !(uvw[0][m - 1] && uvw[1][m - 1] && uvw[2][m - 1]))
         m--;
 
@@ -114,7 +114,7 @@ __device__ __host__ void Scheme::removeZeroes() {
     }
 }
 
-__device__ __host__ void Scheme::removeAt(int index) {
+__device__ __host__ void SchemeInteger::removeAt(int index) {
     m--;
 
     if (index == m)
@@ -125,14 +125,14 @@ __device__ __host__ void Scheme::removeAt(int index) {
     uvw[2][index] = uvw[2][m];
 }
 
-__device__ __host__ void Scheme::addTriplet(int i, int j, int k, const Addition &u, const Addition &v, const Addition &w) {
+__device__ __host__ void SchemeInteger::addTriplet(int i, int j, int k, const Addition &u, const Addition &v, const Addition &w) {
     u.copyTo(uvw[i][m]);
     v.copyTo(uvw[j][m]);
     w.copyTo(uvw[k][m]);
     m++;
 }
 
-__device__ __host__ void Scheme::excludeColumn(int matrix, int column) {
+__device__ __host__ void SchemeInteger::excludeColumn(int matrix, int column) {
     int n1 = n[matrix];
     int n2 = n[(matrix + 1) % 3];
     int oldColumns[MAX_MATRIX_SIZE];
@@ -153,7 +153,7 @@ __device__ __host__ void Scheme::excludeColumn(int matrix, int column) {
     }
 }
 
-__device__ __host__ void Scheme::excludeRow(int matrix, int row) {
+__device__ __host__ void SchemeInteger::excludeRow(int matrix, int row) {
     int n1 = n[matrix];
     int n2 = n[(matrix + 1) % 3];
     int oldRows[MAX_MATRIX_SIZE];
@@ -174,7 +174,7 @@ __device__ __host__ void Scheme::excludeRow(int matrix, int row) {
     }
 }
 
-__device__ __host__ void Scheme::addColumn(int matrix) {
+__device__ __host__ void SchemeInteger::addColumn(int matrix) {
     int n1 = n[matrix];
     int n2 = n[(matrix + 1) % 3];
 
@@ -189,7 +189,7 @@ __device__ __host__ void Scheme::addColumn(int matrix) {
     }
 }
 
-__device__ __host__ void Scheme::addRow(int matrix) {
+__device__ __host__ void SchemeInteger::addRow(int matrix) {
     int n1 = n[matrix];
     int n2 = n[(matrix + 1) % 3];
 
@@ -205,7 +205,7 @@ __device__ __host__ void Scheme::addRow(int matrix) {
 }
 
 /******************************************************* operators *******************************************************/
-__device__ __host__ void Scheme::flip(int i, int j, int k, int index1, int index2, bool checkReduce) {
+__device__ __host__ void SchemeInteger::flip(int i, int j, int k, int index1, int index2, bool checkReduce) {
     uvw[j][index1] += uvw[j][index2];
     uvw[k][index2] -= uvw[k][index1];
 
@@ -253,7 +253,7 @@ __device__ __host__ void Scheme::flip(int i, int j, int k, int index1, int index
     }
 }
 
-__device__ __host__ void Scheme::plus(int i, int j, int k, int index1, int index2, int variant) {
+__device__ __host__ void SchemeInteger::plus(int i, int j, int k, int index1, int index2, int variant) {
     const Addition a1 = uvw[i][index1];
     const Addition b1 = uvw[j][index1];
     const Addition c1 = uvw[k][index1];
@@ -290,14 +290,14 @@ __device__ __host__ void Scheme::plus(int i, int j, int k, int index1, int index
     initFlips();
 }
 
-__device__ __host__ void Scheme::split(int i, int j, int k, int index, const Addition& addition) {
+__device__ __host__ void SchemeInteger::split(int i, int j, int k, int index, const Addition& addition) {
     addTriplet(i, j, k, uvw[i][index] - addition, uvw[j][index], uvw[k][index]);
     uvw[i][index] = addition;
 
     initFlips();
 }
 
-__device__ __host__ void Scheme::reduce(int i, int index1, int index2) {
+__device__ __host__ void SchemeInteger::reduce(int i, int index1, int index2) {
     uvw[i][index1] += uvw[i][index2];
     bool isZero = !uvw[i][index1];
 
@@ -309,7 +309,7 @@ __device__ __host__ void Scheme::reduce(int i, int index1, int index2) {
     initFlips();
 }
 
-__device__ __host__ void Scheme::project(int p, int q) {
+__device__ __host__ void SchemeInteger::project(int p, int q) {
     excludeRow(p, q);
     excludeColumn((p + 2) % 3, q);
     n[p]--;
@@ -324,7 +324,7 @@ __device__ __host__ void Scheme::project(int p, int q) {
         printf("project: invalid scheme %d %d (%d, %d, %d)\n", p, q, n[0], n[1], n[2]);
 }
 
-__device__ __host__ void Scheme::extend(int p) {
+__device__ __host__ void SchemeInteger::extend(int p) {
     if (p == 0) {
         addRow(0);
         addColumn(2);
@@ -362,7 +362,7 @@ __device__ __host__ void Scheme::extend(int p) {
 }
 
 /*************************************************** random operators ****************************************************/
-__device__ bool Scheme::tryFlip(curandState &state) {
+__device__ bool SchemeInteger::tryFlip(curandState &state) {
     int size = flips[0].size + flips[1].size + flips[2].size;
     int indices[MAX_PAIRS];
 
@@ -432,7 +432,7 @@ __device__ bool Scheme::tryFlip(curandState &state) {
     return false;
 }
 
-__device__ bool Scheme::tryPlus(curandState &state) {
+__device__ bool SchemeInteger::tryPlus(curandState &state) {
     if (m >= n[0] * n[1] * n[2])
         return false;
 
@@ -453,7 +453,7 @@ __device__ bool Scheme::tryPlus(curandState &state) {
     return true;
 }
 
-__device__ bool Scheme::trySplitExisted(curandState &state) {
+__device__ bool SchemeInteger::trySplitExisted(curandState &state) {
     if (m >= MAX_RANK)
         return false;
 
@@ -473,7 +473,7 @@ __device__ bool Scheme::trySplitExisted(curandState &state) {
     return true;
 }
 
-__device__ bool Scheme::tryExpand(int count, curandState &state) {
+__device__ bool SchemeInteger::tryExpand(int count, curandState &state) {
     int maxRank = n[0] * n[1] * n[2];
     bool result = false;
 
@@ -489,7 +489,7 @@ __device__ bool Scheme::tryExpand(int count, curandState &state) {
     return result;
 }
 
-__device__ bool Scheme::tryReduce(curandState &state) {
+__device__ bool SchemeInteger::tryReduce(curandState &state) {
     for (size_t i = 0; i < flips[0].size; i++) {
         int index1 = flips[0].index1(i);
         int index2 = flips[0].index2(i);
@@ -518,7 +518,7 @@ __device__ bool Scheme::tryReduce(curandState &state) {
     return false;
 }
 
-__device__ bool Scheme::tryProject(curandState &state, int n1, int n2, int n3) {
+__device__ bool SchemeInteger::tryProject(curandState &state, int n1, int n2, int n3) {
     int indices[3];
     int size = 0;
 
@@ -544,7 +544,7 @@ __device__ bool Scheme::tryProject(curandState &state, int n1, int n2, int n3) {
     return true;
 }
 
-__device__ bool Scheme::tryExtend(curandState &state, int n1, int n2, int n3) {
+__device__ bool SchemeInteger::tryExtend(curandState &state, int n1, int n2, int n3) {
     int indices[3];
     int size = 0;
 
@@ -568,12 +568,12 @@ __device__ bool Scheme::tryExtend(curandState &state, int n1, int n2, int n3) {
     return true;
 }
 
-__device__ void Scheme::sandwiching(curandState &state) {
+__device__ void SchemeInteger::sandwiching(curandState &state) {
     // TODO
 }
 
 /**************************************************** save *****************************************************/
-void Scheme::saveMatrix(std::ofstream &f, std::string name, int m, const Addition *additions) const {
+void SchemeInteger::saveMatrix(std::ofstream &f, std::string name, int m, const Addition *additions) const {
     f << "    \"" << name << "\": [" << std::endl;
 
     for (int index = 0; index < m; index++)
@@ -582,7 +582,7 @@ void Scheme::saveMatrix(std::ofstream &f, std::string name, int m, const Additio
     f << "    ]";
 }
 
-void Scheme::save(const std::string &path) {
+void SchemeInteger::save(const std::string &path) {
     std::ofstream f(path);
 
     f << "{" << std::endl;
@@ -601,7 +601,7 @@ void Scheme::save(const std::string &path) {
     f.close();
 }
 
-void Scheme::showTensor(const Addition &addition, int n1, int n2, std::string name, bool transpose) const {
+void SchemeInteger::showTensor(const Addition &addition, int n1, int n2, std::string name, bool transpose) const {
     bool printed = false;
 
     std::cout << "(";
@@ -640,7 +640,7 @@ void Scheme::showTensor(const Addition &addition, int n1, int n2, std::string na
     std::cout << ")";
 }
 
-void Scheme::show() const {
+void SchemeInteger::show() const {
     for (int index = 0; index < m; index++) {
         showTensor(uvw[0][index], n[0], n[1], "a", false);
         std::cout << " x ";

@@ -2,18 +2,13 @@
 
 #include <cstdint>
 #include <iostream>
-
-const int MAX_MATRIX_SIZE = 7;
-const int MAX_MATRIX_ELEMENTS = MAX_MATRIX_SIZE * MAX_MATRIX_SIZE;
-const int MAX_SIZE = MAX_MATRIX_ELEMENTS;
-
-typedef uint64_t AdditionT;
+#include "config.cuh"
 
 struct Addition {
     int n;
-    AdditionT values;
-    AdditionT signs;
-    AdditionT carry;
+    T values;
+    T signs;
+    T carry;
 
     __device__ __host__ Addition();
     __device__ __host__ Addition(int n);

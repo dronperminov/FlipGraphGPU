@@ -1,6 +1,6 @@
 #include "scheme_z2.cuh"
 
-__device__ __host__ bool Scheme::validateEquation(int i, int j, int k) const {
+__device__ __host__ bool SchemeZ2::validateEquation(int i, int j, int k) const {
     int i1 = i / n[1];
     int i2 = i % n[1];
     int j1 = j / n[2];
@@ -17,7 +17,7 @@ __device__ __host__ bool Scheme::validateEquation(int i, int j, int k) const {
     return equation == target;
 }
 
-__device__ __host__ bool Scheme::validate() const {
+__device__ __host__ bool SchemeZ2::validate() const {
     bool valid = true;
 
     for (int i = 0; i < nn[0] && valid; i++)
@@ -29,7 +29,7 @@ __device__ __host__ bool Scheme::validate() const {
 }
 
 /*************************************************** device functions ****************************************************/
-__device__ __host__ void Scheme::initializeNaive(int n1, int n2, int n3) {
+__device__ __host__ void SchemeZ2::initializeNaive(int n1, int n2, int n3) {
     n[0] = n1;
     n[1] = n2;
     n[2] = n3;
@@ -57,7 +57,7 @@ __device__ __host__ void Scheme::initializeNaive(int n1, int n2, int n3) {
         printf("not valid naive scheme\n");
 }
 
-__device__ __host__ void Scheme::initializeFrom(int n1, int n2, int n3, int m, const T uvw[3][MAX_RANK]) {
+__device__ __host__ void SchemeZ2::initializeFrom(int n1, int n2, int n3, int m, const T uvw[3][MAX_RANK]) {
     n[0] = n1;
     n[1] = n2;
     n[2] = n3;
@@ -78,7 +78,7 @@ __device__ __host__ void Scheme::initializeFrom(int n1, int n2, int n3, int m, c
         printf("not valid from scheme %d %d %d %d\n", n1, n2, n3, m);
 }
 
-__device__ __host__ void Scheme::copyTo(Scheme &target) const {
+__device__ __host__ void SchemeZ2::copyTo(SchemeZ2 &target) const {
     target.m = m;
 
     for (int i = 0; i < 3; i++) {
@@ -92,7 +92,7 @@ __device__ __host__ void Scheme::copyTo(Scheme &target) const {
     target.initFlips();
 }
 
-__device__ __host__ void Scheme::initFlips() {
+__device__ __host__ void SchemeZ2::initFlips() {
     for (int i = 0; i < 3; i++) {
         flips[i].clear();
 
@@ -103,7 +103,7 @@ __device__ __host__ void Scheme::initFlips() {
     }
 }
 
-__device__ __host__ void Scheme::removeZeroes() {
+__device__ __host__ void SchemeZ2::removeZeroes() {
     while (m > 0 && !(uvw[0][m - 1] && uvw[1][m - 1] && uvw[2][m - 1]))
         m--;
 
@@ -117,7 +117,7 @@ __device__ __host__ void Scheme::removeZeroes() {
     }
 }
 
-__device__ __host__ void Scheme::removeAt(int index) {
+__device__ __host__ void SchemeZ2::removeAt(int index) {
     m--;
 
     if (index == m)
@@ -128,14 +128,14 @@ __device__ __host__ void Scheme::removeAt(int index) {
     uvw[2][index] = uvw[2][m];
 }
 
-__device__ __host__ void Scheme::addTriplet(int i, int j, int k, const T u, const T v, const T w) {
+__device__ __host__ void SchemeZ2::addTriplet(int i, int j, int k, const T u, const T v, const T w) {
     uvw[i][m] = u;
     uvw[j][m] = v;
     uvw[k][m] = w;
     m++;
 }
 
-__device__ __host__ void Scheme::excludeColumn(int matrix, int column) {
+__device__ __host__ void SchemeZ2::excludeColumn(int matrix, int column) {
     int n1 = n[matrix];
     int n2 = n[(matrix + 1) % 3];
     int oldColumns[MAX_MATRIX_SIZE];
@@ -156,7 +156,7 @@ __device__ __host__ void Scheme::excludeColumn(int matrix, int column) {
     }
 }
 
-__device__ __host__ void Scheme::excludeRow(int matrix, int row) {
+__device__ __host__ void SchemeZ2::excludeRow(int matrix, int row) {
     int n1 = n[matrix];
     int n2 = n[(matrix + 1) % 3];
     int oldRows[MAX_MATRIX_SIZE];
@@ -177,7 +177,7 @@ __device__ __host__ void Scheme::excludeRow(int matrix, int row) {
     }
 }
 
-__device__ __host__ void Scheme::addColumn(int matrix) {
+__device__ __host__ void SchemeZ2::addColumn(int matrix) {
     int n1 = n[matrix];
     int n2 = n[(matrix + 1) % 3];
 
@@ -192,7 +192,7 @@ __device__ __host__ void Scheme::addColumn(int matrix) {
     }
 }
 
-__device__ __host__ void Scheme::addRow(int matrix) {
+__device__ __host__ void SchemeZ2::addRow(int matrix) {
     int n1 = n[matrix];
     int n2 = n[(matrix + 1) % 3];
 
@@ -208,7 +208,7 @@ __device__ __host__ void Scheme::addRow(int matrix) {
 }
 
 /******************************************************** helpers ********************************************************/
-__device__ ReduceGaussCandidate Scheme::getReduceGaussCandidate(curandState &state) const {
+__device__ ReduceGaussCandidate SchemeZ2::getReduceGaussCandidate(curandState &state) const {
     int permutation[3];
     randomPermutation(permutation, 3, state);
 
@@ -249,7 +249,7 @@ __device__ ReduceGaussCandidate Scheme::getReduceGaussCandidate(curandState &sta
     return possibleReduce;
 }
 
-__device__ int Scheme::findXorCombination(int uvwIndex, int *indices, int size, int *combination) const {
+__device__ int SchemeZ2::findXorCombination(int uvwIndex, int *indices, int size, int *combination) const {
     if (size < 3)
         return 0;
 
@@ -317,7 +317,7 @@ __device__ int Scheme::findXorCombination(int uvwIndex, int *indices, int size, 
     return 0;
 }
 
-__device__ void Scheme::shellSort(int *indices, const T *values, int n) const {
+__device__ void SchemeZ2::shellSort(int *indices, const T *values, int n) const {
     int gaps[] = {701, 301, 132, 57, 23, 10, 4, 1};
 
     for (int g = 0; g < 8; g++) {
@@ -340,7 +340,7 @@ __device__ void Scheme::shellSort(int *indices, const T *values, int n) const {
     }
 }
 
-__device__ bool Scheme::inverseMatrixZ2(int n, int *matrix, int *inverse) const {
+__device__ bool SchemeZ2::inverseMatrixZ2(int n, int *matrix, int *inverse) const {
     int augmented[2 * MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
     int n2 = n * 2;
 
@@ -384,13 +384,13 @@ __device__ bool Scheme::inverseMatrixZ2(int n, int *matrix, int *inverse) const 
     return true;
 }
 
-__device__ void Scheme::invertibleMatrixZ2(int n, int *matrix, int *inverse, curandState &state) const {
+__device__ void SchemeZ2::invertibleMatrixZ2(int n, int *matrix, int *inverse, curandState &state) const {
     do {
         randomMatrixZ2(n, matrix, state);
     } while (!inverseMatrixZ2(n, matrix, inverse));
 }
 
-__device__ T Scheme::matmul(const T matrix, int *left, int *right, int n1, int n2) const {
+__device__ T SchemeZ2::matmul(const T matrix, int *left, int *right, int n1, int n2) const {
     int result1[MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
     int result2[MAX_MATRIX_SIZE * MAX_MATRIX_SIZE];
 
@@ -427,7 +427,7 @@ __device__ T Scheme::matmul(const T matrix, int *left, int *right, int n1, int n
 }
 
 /******************************************************* operators *******************************************************/
-__device__ __host__ void Scheme::flip(int i, int j, int k, int index1, int index2, bool checkReduce) {
+__device__ __host__ void SchemeZ2::flip(int i, int j, int k, int index1, int index2, bool checkReduce) {
     uvw[j][index1] ^= uvw[j][index2];
     uvw[k][index2] ^= uvw[k][index1];
 
@@ -475,7 +475,7 @@ __device__ __host__ void Scheme::flip(int i, int j, int k, int index1, int index
     }
 }
 
-__device__ __host__ void Scheme::plus(int i, int j, int k, int index1, int index2, int variant) {
+__device__ __host__ void SchemeZ2::plus(int i, int j, int k, int index1, int index2, int variant) {
     const T a1 = uvw[i][index1];
     const T b1 = uvw[j][index1];
     const T c1 = uvw[k][index1];
@@ -510,14 +510,14 @@ __device__ __host__ void Scheme::plus(int i, int j, int k, int index1, int index
     initFlips();
 }
 
-__device__ __host__ void Scheme::split(int i, int j, int k, int index, const T a1) {
+__device__ __host__ void SchemeZ2::split(int i, int j, int k, int index, const T a1) {
     T a2 = uvw[i][index] ^ a1;
     uvw[i][index] = a1;
     addTriplet(i, j, k, a2, uvw[j][index], uvw[k][index]);
     initFlips();
 }
 
-__device__ __host__ void Scheme::reduceGauss(int i, int *combination, int combinationSize) {
+__device__ __host__ void SchemeZ2::reduceGauss(int i, int *combination, int combinationSize) {
     int last = combination[combinationSize - 1];
 
     #pragma unroll
@@ -527,7 +527,7 @@ __device__ __host__ void Scheme::reduceGauss(int i, int *combination, int combin
     removeAt(last);
 }
 
-__device__ __host__ void Scheme::reduce(int i, int index1, int index2) {
+__device__ __host__ void SchemeZ2::reduce(int i, int index1, int index2) {
     uvw[i][index1] ^= uvw[i][index2];
     bool isZero = !uvw[i][index1];
 
@@ -539,7 +539,7 @@ __device__ __host__ void Scheme::reduce(int i, int index1, int index2) {
     initFlips();
 }
 
-__device__ __host__ void Scheme::project(int p, int q) {
+__device__ __host__ void SchemeZ2::project(int p, int q) {
     excludeRow(p, q);
     excludeColumn((p + 2) % 3, q);
     n[p]--;
@@ -554,7 +554,7 @@ __device__ __host__ void Scheme::project(int p, int q) {
         printf("project: invalid scheme");
 }
 
-__device__ __host__ void Scheme::extend(int p) {
+__device__ __host__ void SchemeZ2::extend(int p) {
     if (p == 0) {
         addRow(0);
         addColumn(2);
@@ -592,7 +592,7 @@ __device__ __host__ void Scheme::extend(int p) {
 }
 
 /*************************************************** random operators ****************************************************/
-__device__ bool Scheme::tryFlip(curandState &state) {
+__device__ bool SchemeZ2::tryFlip(curandState &state) {
     int size = flips[0].size + flips[1].size + flips[2].size;
 
     if (!size)
@@ -639,7 +639,7 @@ __device__ bool Scheme::tryFlip(curandState &state) {
     return true;
 }
 
-__device__ bool Scheme::tryPlus(curandState &state) {
+__device__ bool SchemeZ2::tryPlus(curandState &state) {
     if (m >= MAX_RANK)
         return false;
 
@@ -660,7 +660,7 @@ __device__ bool Scheme::tryPlus(curandState &state) {
     return true;
 }
 
-__device__ bool Scheme::trySplit(curandState &state) {
+__device__ bool SchemeZ2::trySplit(curandState &state) {
     if (m >= MAX_RANK)
         return false;
 
@@ -688,7 +688,7 @@ __device__ bool Scheme::trySplit(curandState &state) {
     return true;
 }
 
-__device__ bool Scheme::trySplitExisted(curandState &state) {
+__device__ bool SchemeZ2::trySplitExisted(curandState &state) {
     if (m >= MAX_RANK)
         return false;
 
@@ -714,7 +714,7 @@ __device__ bool Scheme::trySplitExisted(curandState &state) {
     return true;
 }
 
-__device__ bool Scheme::tryReduceGauss(curandState &state) {
+__device__ bool SchemeZ2::tryReduceGauss(curandState &state) {
     ReduceGaussCandidate possibleReduce = getReduceGaussCandidate(state);
     if (possibleReduce.i == -1)
         return false;
@@ -723,7 +723,7 @@ __device__ bool Scheme::tryReduceGauss(curandState &state) {
     return true;
 }
 
-__device__ bool Scheme::tryReduce(curandState &state) {
+__device__ bool SchemeZ2::tryReduce(curandState &state) {
     for (size_t i = 0; i < flips[0].size; i++) {
         int index1 = flips[0].index1(i);
         int index2 = flips[0].index2(i);
@@ -752,7 +752,7 @@ __device__ bool Scheme::tryReduce(curandState &state) {
     return false;
 }
 
-__device__ bool Scheme::tryProject(curandState &state, int n1, int n2, int n3) {
+__device__ bool SchemeZ2::tryProject(curandState &state, int n1, int n2, int n3) {
     int indices[3];
     int size = 0;
 
@@ -778,7 +778,7 @@ __device__ bool Scheme::tryProject(curandState &state, int n1, int n2, int n3) {
     return true;
 }
 
-__device__ bool Scheme::tryExtend(curandState &state, int n1, int n2, int n3) {
+__device__ bool SchemeZ2::tryExtend(curandState &state, int n1, int n2, int n3) {
     int indices[3];
     int size = 0;
 
@@ -802,7 +802,7 @@ __device__ bool Scheme::tryExtend(curandState &state, int n1, int n2, int n3) {
     return true;
 }
 
-__device__ bool Scheme::tryExpand(int count, curandState &state) {
+__device__ bool SchemeZ2::tryExpand(int count, curandState &state) {
     int maxRank = n[0] * n[1] * n[2];
     bool result = false;
 
@@ -823,7 +823,7 @@ __device__ bool Scheme::tryExpand(int count, curandState &state) {
     return result;
 }
 
-__device__ void Scheme::sandwiching(curandState &state) {
+__device__ void SchemeZ2::sandwiching(curandState &state) {
     int u[MAX_MATRIX_ELEMENTS];
     int v[MAX_MATRIX_ELEMENTS];
     int w[MAX_MATRIX_ELEMENTS];
@@ -846,7 +846,7 @@ __device__ void Scheme::sandwiching(curandState &state) {
 }
 
 /**************************************************** save *****************************************************/
-void Scheme::saveMatrix(std::ofstream &f, std::string name, int n1, int n2, int m, const T *matrix) const {
+void SchemeZ2::saveMatrix(std::ofstream &f, std::string name, int n1, int n2, int m, const T *matrix) const {
     f << "    \"" << name << "\": [" << std::endl;
 
     for (int index = 0; index < m; index++) {
@@ -865,7 +865,7 @@ void Scheme::saveMatrix(std::ofstream &f, std::string name, int n1, int n2, int 
     f << "    ]";
 }
 
-void Scheme::save(const std::string &path) {
+void SchemeZ2::save(const std::string &path) {
     std::ofstream f(path);
 
     f << "{" << std::endl;

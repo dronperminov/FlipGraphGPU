@@ -8,13 +8,12 @@
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 
+#include "config.cuh"
 #include "random.cuh"
 #include "addition.cuh"
 #include "flip_set.cuh"
 
-const int MAX_RANK = 150;
-
-struct Scheme {
+struct SchemeInteger {
     int n[3];
     int nn[3];
     int m;
@@ -24,7 +23,7 @@ struct Scheme {
     __device__ __host__ bool validate() const;
     __device__ __host__ void initializeNaive(int n1, int n2, int n3);
     __device__ __host__ void initializeFrom(int n1, int n2, int n3, int m, int scheme[3][MAX_RANK][MAX_MATRIX_ELEMENTS]);
-    __device__ __host__ void copyTo(Scheme &target);
+    __device__ __host__ void copyTo(SchemeInteger &target);
 
     __device__ bool tryFlip(curandState &state);
     __device__ bool tryPlus(curandState &state);
