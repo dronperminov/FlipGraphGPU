@@ -27,15 +27,34 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2bestRank[getKey(n1, n2, n3)] = n1 * n2 * n3;
 
     n2knownRanks = {
-        {"222", 7},
-        {"223", 11}, {"224", 14}, {"225", 18}, {"226", 21}, {"227", 25}, {"233", 15}, {"234", 20}, {"235", 25}, {"236", 30}, {"237", 35},
-        {"244", 26}, {"245", 32}, {"246", 39}, {"247", 45}, {"255", 40}, {"256", 47}, {"257", 55}, {"266", 56}, {"267", 66}, {"277", 76},
-        {"333", 23}, {"334", 29}, {"335", 36}, {"336", 40}, {"337", 49}, {"344", 38}, {"345", 47}, {"346", 54}, {"347", 63}, {"355", 58},
-        {"356", 68}, {"357", 79}, {"366", 80}, {"367", 94}, {"377", 112},
-        {"444", 48}, {"445", 61}, {"446", 73}, {"447", 85}, {"455", 75}, {"456", 90}, {"457", 104}, {"466", 105}, {"467", 123}, {"477", 144},
-        {"555", 93}, {"556", 110}, {"557", 127}, {"566", 130}, {"567", 150}, {"577", 176},
-        {"666", 153}, {"667", 183}, {"677", 215},
-        {"777", 249}
+        {"222", 7}, {"223", 11}, {"224", 14}, {"225", 18}, {"226", 21}, {"227", 25}, {"228", 28},
+        {"233", 15}, {"234", 20}, {"235", 25}, {"236", 30}, {"237", 35}, {"238", 40},
+        {"244", 26}, {"245", 32}, {"246", 39}, {"247", 45}, {"248", 51},
+        {"255", 40}, {"256", 47}, {"257", 55}, {"258", 63},
+        {"266", 56}, {"267", 66}, {"268", 75},
+        {"277", 76}, {"278", 88},
+        {"288", 100},
+        {"333", 23}, {"334", 29}, {"335", 36}, {"336", 40}, {"337", 49}, {"338", 55},
+        {"344", 38}, {"345", 47}, {"346", 54}, {"347", 63}, {"348", 73},
+        {"355", 58}, {"356", 68}, {"357", 79}, {"358", 90},
+        {"366", 80}, {"367", 94}, {"368", 108},
+        {"377", 112}, {"378", 126},
+        {"388", 145},
+        {"444", 48}, {"445", 61}, {"446", 73}, {"447", 85}, {"448", 96},
+        {"455", 75}, {"456", 90}, {"457", 104}, {"458", 122},
+        {"466", 105}, {"467", 123}, {"468", 140},
+        {"477", 144}, {"478", 164},
+        {"488", 182},
+        {"555", 93}, {"556", 110}, {"557", 127}, {"558", 144},
+        {"566", 130}, {"567", 150}, {"568", 176},
+        {"577", 176}, {"578", 205},
+        {"588", 230},
+        {"666", 153}, {"667", 183}, {"668", 203},
+        {"677", 215}, {"678", 239},
+        {"688", 266},
+        {"777", 249}, {"778", 277},
+        {"788", 306},
+        {"888", 336}
     };
 
     CUDA_CHECK(cudaMallocManaged(&schemes, schemesCount * sizeof(Scheme)));
@@ -77,6 +96,7 @@ void FlipGraph::updateRanks(int iteration) {
         if (result == n2bestRank.end() || schemes[i].m < result->second) {
             n2bestRank[keys[i]] = schemes[i].m;
             n2bestIndex[keys[i]] = i;
+            schemes[i].copyTo(schemesBest[i]);
         }
     }
 
@@ -153,9 +173,6 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
         for (int i = 0; i < count && i < indices.size(); i++) {
             Scheme &scheme = schemes[indices[i]];
 
-            if (!scheme.validate())
-                throw std::runtime_error("Invalid scheme");
-
             std::cout << "| ";
             std::cout << std::setw(9) << prettyTime(elapsed) << " | ";
             std::cout << std::setw(9) << iteration << " | ";
@@ -179,9 +196,9 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
 
         std::cout << "+-----------+-----------+--------+------+------+-------+------+------+-------------+" << std::endl;
 
-        for (auto i : indices)
-            if (i % iteration == 0)
-                schemesBest[indices[0]].copyTo(schemes[i]);
+        for (size_t i = 0; i < indices.size(); i++)
+            if (i % (iteration % 25 + 1) == 0)
+                schemesBest[indices[0]].copyTo(schemes[indices[i]]);
     }
 
     std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
@@ -370,4 +387,7 @@ __global__ void projectExtendKernel(Scheme *schemes, int schemesCount, curandSta
         while (count && scheme.tryProject(state))
             count--;
     }
+
+    if (!scheme.validate())
+        printf("invalid (%d) scheme (project extend)\n", idx);
 }

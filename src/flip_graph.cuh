@@ -17,6 +17,12 @@
 #include "scheme_integer.cuh"
 #include "scheme_z2.cuh"
 
+#ifdef SCHEME_INTEGER
+#define Scheme SchemeInteger
+#else
+#define Scheme SchemeZ2
+#endif
+
 struct FlipGraphProbabilities {
     double extend;
     double project;

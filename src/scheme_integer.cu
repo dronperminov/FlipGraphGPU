@@ -143,7 +143,7 @@ __device__ __host__ void SchemeInteger::addTriplet(int i, int j, int k, const Ad
 __device__ __host__ void SchemeInteger::excludeColumn(int matrix, int column) {
     int n1 = n[matrix];
     int n2 = n[(matrix + 1) % 3];
-    int oldColumns[MAX_MATRIX_SIZE];
+    int oldColumns[MAX_MATRIX_ELEMENTS];
     int size = 0;
 
     for (int j = 0; j < n2; j++)
@@ -164,7 +164,7 @@ __device__ __host__ void SchemeInteger::excludeColumn(int matrix, int column) {
 __device__ __host__ void SchemeInteger::excludeRow(int matrix, int row) {
     int n1 = n[matrix];
     int n2 = n[(matrix + 1) % 3];
-    int oldRows[MAX_MATRIX_SIZE];
+    int oldRows[MAX_MATRIX_ELEMENTS];
     int size = 0;
 
     for (int i = 0; i < n1; i++)
@@ -210,6 +210,55 @@ __device__ __host__ void SchemeInteger::addRow(int matrix) {
 
         uvw[matrix][index] = value;
     }
+}
+
+__device__ __host__ bool SchemeInteger::isValidExtension(int i, int j, int k, int maxN1, int maxN2, int maxN3) const {
+    int newN[3] = {n[0], n[1], n[2]};
+    int maxN[3] = {maxN1, maxN2, maxN3};
+
+    newN[i] += 1;
+
+    if (m + newN[j] * newN[k] > MAX_RANK)
+        return false;
+
+    for (int p = 0; p < 3; p++) {
+        if (newN[p] * newN[(p + 1) % 3] > MAX_MATRIX_ELEMENTS)
+            return false;
+
+        if (newN[p] > maxN[p])
+            return false;
+    }
+
+    return true;
+}
+
+__device__ __host__ bool SchemeInteger::fixSigns() {
+    bool changed = false;
+
+    for (int index = 0; index < m; index++) {
+        bool i = uvw[0][index].positiveFirstNonZero();
+        bool j = uvw[1][index].positiveFirstNonZero();
+
+        if (i && j)
+            continue;
+
+        if (!i && !j) {
+            uvw[0][index].inverse();
+            uvw[1][index].inverse();
+        }
+        else if (!i) {
+            uvw[0][index].inverse();
+            uvw[2][index].inverse();
+        }
+        else {
+            uvw[1][index].inverse();
+            uvw[2][index].inverse();
+        }
+
+        changed = true;
+    }
+
+    return changed;
 }
 
 /******************************************************* operators *******************************************************/
@@ -362,9 +411,6 @@ __device__ __host__ void SchemeInteger::project(int p, int q) {
 
     removeZeroes();
     initFlips();
-
-    if (!validate())
-        printf("project: invalid scheme %d %d (%d, %d, %d)\n", p, q, n[0], n[1], n[2]);
 }
 
 __device__ __host__ void SchemeInteger::extend(int p) {
@@ -399,13 +445,10 @@ __device__ __host__ void SchemeInteger::extend(int p) {
         nn[i] = n[i] * n[(i + 1) % 3];
 
     initFlips();
-
-    if (!validate())
-        printf("extend: invalid scheme %d (%d, %d, %d)\n", p, n[0], n[1], n[2]);
 }
 
 __device__ __host__ void SchemeInteger::swapBasisRows(int i1, int i2) {
-    int rows[MAX_MATRIX_SIZE];
+    int rows[MAX_MATRIX_ELEMENTS];
 
     for (int row = 0; row < n[0]; row++)
         rows[row] = row;
@@ -431,7 +474,7 @@ __device__ __host__ void SchemeInteger::swapBasisRows(int i1, int i2) {
 }
 
 __device__ __host__ void SchemeInteger::swapBasisColumns(int j1, int j2) {
-    int columns[MAX_MATRIX_SIZE];
+    int columns[MAX_MATRIX_ELEMENTS];
 
     for (int column = 0; column < n[2]; column++)
         columns[column] = column;
@@ -454,35 +497,6 @@ __device__ __host__ void SchemeInteger::swapBasisColumns(int j1, int j2) {
         uvw[1][index] = v;
         uvw[2][index] = w;
     }
-}
-
-__device__ __host__ bool SchemeInteger::fixSigns() {
-    bool changed = false;
-
-    for (int index = 0; index < m; index++) {
-        bool i = uvw[0][index].positiveFirstNonZero();
-        bool j = uvw[1][index].positiveFirstNonZero();
-
-        if (i && j)
-            continue;
-
-        if (!i && !j) {
-            uvw[0][index].inverse();
-            uvw[1][index].inverse();
-        }
-        else if (!i) {
-            uvw[0][index].inverse();
-            uvw[2][index].inverse();
-        }
-        else {
-            uvw[1][index].inverse();
-            uvw[2][index].inverse();
-        }
-
-        changed = true;
-    }
-
-    return changed;
 }
 
 /*************************************************** random operators ****************************************************/
@@ -682,13 +696,13 @@ __device__ bool SchemeInteger::tryExtend(curandState &state, int n1, int n2, int
     int indices[3];
     int size = 0;
 
-    if (n[0] + 1 <= n1 && n[1] <= n2 && n[2] <= n3 && (n[0] + 1) * n[1] <= MAX_SIZE && (n[0] + 1) * n[2] <= MAX_SIZE && m + n[1] * n[2] <= MAX_RANK)
+    if (isValidExtension(0, 1, 2, n1, n2, n3))
         indices[size++] = 0;
 
-    if (n[0] <= n1 && n[1] + 1 <= n2 && n[2] <= n3 && (n[1] + 1) * n[0] <= MAX_SIZE && (n[1] + 1) * n[2] <= MAX_SIZE && m + n[0] * n[2] <= MAX_RANK)
+    if (isValidExtension(1, 0, 2, n1, n2, n3))
         indices[size++] = 1;
 
-    if (n[0] <= n1 && n[1] <= n2 && n[2] + 1 <= n3 && (n[2] + 1) * n[0] <= MAX_SIZE && (n[2] + 1) * n[1] <= MAX_SIZE && m + n[0] * n[1] <= MAX_RANK)
+    if (isValidExtension(2, 0, 1, n1, n2, n3))
         indices[size++] = 2;
 
     if (size == 0)

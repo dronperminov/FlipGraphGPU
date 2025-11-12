@@ -4,6 +4,12 @@
 #include "arg_parser.cuh"
 #include "flip_graph.cuh"
 
+#ifdef SCHEME_INTEGER
+#pragma message("Building with Z field scheme")
+#else
+#pragma message("Building with Z2 field scheme")
+#endif
+
 int main(int argc, char* argv[]) {
     ArgParser parser("flip_graph", "Find fast matrix multiplication in parallel using CUDA");
 
@@ -45,8 +51,8 @@ int main(int argc, char* argv[]) {
     if (seed == 0)
         seed = time(0);
 
-    if (n1 * n2 > MAX_SIZE || n2 * n3 > MAX_SIZE || n1 * n3 > MAX_SIZE) {
-        std::cout << "Error sizes, please increase MAX_SIZE (now: " << MAX_SIZE << ")" << std::endl;
+    if (n1 * n2 > MAX_MATRIX_ELEMENTS || n2 * n3 > MAX_MATRIX_ELEMENTS || n1 * n3 > MAX_MATRIX_ELEMENTS) {
+        std::cout << "Error sizes, please increase MAX_MATRIX_ELEMENTS (now: " << MAX_MATRIX_ELEMENTS << ")" << std::endl;
         return 0;
     }
 

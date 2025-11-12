@@ -36,8 +36,8 @@ struct SchemeZ2 {
     __device__ bool tryExpand(int count, curandState &state);
     __device__ bool tryReduce();
     __device__ bool tryReduceGauss(curandState &state);
-    __device__ bool tryProject(curandState &state, int n1 = 2, int n2 = 2, int n3 = 2);
-    __device__ bool tryExtend(curandState &state, int n1 = 7, int n2 = 7, int n3 = 7);
+    __device__ bool tryProject(curandState &state, int n1 = MIN_PROJECT_N1, int n2 = MIN_PROJECT_N2, int n3 = MIN_PROJECT_N3);
+    __device__ bool tryExtend(curandState &state, int n1 = MAX_EXTENSION_N1, int n2 = MAX_EXTENSION_N2, int n3 = MAX_EXTENSION_N3);
     __device__ void sandwiching(curandState &state);
     __device__ void swapBasis(curandState &state);
 
@@ -54,6 +54,7 @@ private:
     __device__ __host__ void excludeRow(int matrix, int row);
     __device__ __host__ void addColumn(int matrix);
     __device__ __host__ void addRow(int matrix);
+    __device__ __host__ bool isValidExtension(int i, int j, int k, int maxN1, int maxN2, int maxN3) const;
 
     __device__ ReduceGaussCandidate getReduceGaussCandidate(curandState &state) const;
 
