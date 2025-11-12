@@ -433,7 +433,7 @@ __device__ __host__ void SchemeInteger::swapBasisRows(int i1, int i2) {
 __device__ __host__ void SchemeInteger::swapBasisColumns(int j1, int j2) {
     int columns[MAX_MATRIX_SIZE];
 
-    for (int column = 0; column < n[1]; column++)
+    for (int column = 0; column < n[2]; column++)
         columns[column] = column;
 
     columns[j1] = j2;
@@ -713,8 +713,8 @@ __device__ void SchemeInteger::swapBasis(curandState &state) {
         swapBasisRows(i1, i2);
     }
     else {
-        int j1 = curand(&state) % n[1];
-        int j2 = curand(&state) % n[1];
+        int j1 = curand(&state) % n[2];
+        int j2 = curand(&state) % n[2];
         swapBasisColumns(j1, j2);
     }
 
