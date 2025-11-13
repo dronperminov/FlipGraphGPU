@@ -78,6 +78,7 @@ __device__ __host__ void SchemeInteger::initializeFrom(int n1, int n2, int n3, i
         for (int index = 0; index < m; index++)
             uvw[i][index] = Addition(nn[i], scheme[i][index]);
 
+    fixSigns();
     initFlips();
 
     if (!validate())

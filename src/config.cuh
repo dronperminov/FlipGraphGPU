@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iostream>
+#include <algorithm>
+
 #define SCHEME_INTEGER
 
 typedef uint16_t T;

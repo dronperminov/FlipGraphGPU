@@ -19,8 +19,10 @@
 
 #ifdef SCHEME_INTEGER
 #define Scheme SchemeInteger
+const std::string mod = "mod0";
 #else
 #define Scheme SchemeZ2
+const std::string mod = "mod2";
 #endif
 
 struct FlipGraphProbabilities {

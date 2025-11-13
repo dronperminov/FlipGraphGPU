@@ -246,7 +246,7 @@ std::string FlipGraph::getSavePath(const Scheme &scheme, int iteration, int runI
     ss << "_iteration" << iteration;
     ss << "_run" << runId;
     ss << "_" << scheme.n[0] << scheme.n[1] << scheme.n[2];
-    ss << "_scheme.json";
+    ss << "_" << mod << ".json";
 
     return ss.str();
 }
@@ -374,19 +374,11 @@ __global__ void projectExtendKernel(Scheme *schemes, int schemesCount, curandSta
     Scheme &scheme = schemes[idx];
     curandState &state = states[idx];
 
-    if (curand_uniform(&state) < extendProbability) {
-        int count = randint(1, 6, state);
+    if (curand_uniform(&state) < extendProbability)
+        scheme.tryExtend(state);
 
-        while (count && scheme.tryExtend(state))
-            count--;
-    }
-
-    if (curand_uniform(&state) < projectProbability) {
-        int count = randint(1, 6, state);
-
-        while (count && scheme.tryProject(state))
-            count--;
-    }
+    if (curand_uniform(&state) < projectProbability)
+        scheme.tryProject(state);
 
     if (!scheme.validate())
         printf("invalid (%d) scheme (project extend)\n", idx);
