@@ -572,7 +572,7 @@ __device__ bool SchemeInteger::tryFlip(curandState &state) {
 }
 
 __device__ bool SchemeInteger::tryPlus(curandState &state) {
-    if (m >= n[0] * n[1] * n[2])
+    if (m >= MAX_RANK)
         return false;
 
     int index1 = curand(&state) % m;
@@ -613,10 +613,9 @@ __device__ bool SchemeInteger::trySplitExisted(curandState &state) {
 }
 
 __device__ bool SchemeInteger::tryExpand(int count, curandState &state) {
-    int maxRank = n[0] * n[1] * n[2];
     bool result = false;
 
-    for (int i = 0; i < count && m < maxRank; i++) {
+    for (int i = 0; i < count && m < MAX_RANK; i++) {
         int v = curand(&state) % 2;
 
         if (v == 0)
