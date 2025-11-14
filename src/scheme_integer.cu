@@ -27,7 +27,7 @@ __device__ __host__ bool SchemeInteger::validate() const {
 
     for (int index = 0;index < m; index++) {
         for (int i = 0; i < 3; i++) {
-            if (uvw[i][index].carry) {
+            if (!uvw[i][index].valid) {
                 printf("carry number\n");
                 return false;
             }
@@ -220,6 +220,26 @@ __device__ __host__ bool SchemeInteger::isValidExtension(int i, int j, int k, in
     newN[i] += 1;
 
     if (m + newN[j] * newN[k] > MAX_RANK)
+        return false;
+
+    for (int p = 0; p < 3; p++) {
+        if (newN[p] * newN[(p + 1) % 3] > MAX_MATRIX_ELEMENTS)
+            return false;
+
+        if (newN[p] > maxN[p])
+            return false;
+    }
+
+    return true;
+}
+
+__device__ __host__ bool SchemeInteger::isValidProduct(int i, int maxN1, int maxN2, int maxN3) const {
+    int newN[3] = {n[0], n[1], n[2]};
+    int maxN[3] = {maxN1, maxN2, maxN3};
+
+    newN[i] *= 2;
+
+    if (m * 2 > MAX_RANK)
         return false;
 
     for (int p = 0; p < 3; p++) {
@@ -445,6 +465,66 @@ __device__ __host__ void SchemeInteger::extend(int p) {
     for (int i = 0; i < 3; i++)
         nn[i] = n[i] * n[(i + 1) % 3];
 
+    initFlips();
+}
+
+__device__ __host__ void SchemeInteger::product(int p) {
+    int nNew[3] = {n[0], n[1], n[2]};
+    int nnNew[3];
+    int d[3];
+    int mNew = m * 2;
+
+    nNew[p] *= 2;
+
+    for (int i = 0; i < 3; i++) {
+        nnNew[i] = nNew[i] * nNew[(i + 1) % 3];
+        d[i] = p == i ? n[i] : 0;
+    }
+
+    for (int index = 0; index < m; index++) {
+        Addition u1(nnNew[0]), u2(nnNew[0]);
+        Addition v1(nnNew[1]), v2(nnNew[1]);
+        Addition w1(nnNew[2]), w2(nnNew[2]);
+
+        for (int i = 0; i < n[0]; i++) {
+            for (int j = 0; j < n[1]; j++) {
+                int uij = uvw[0][index][i * n[1] + j];
+                u1.set(i * nNew[1] + j, uij);
+                u2.set((i + d[0]) * nNew[1] + j + d[1], uij);
+            }
+        }
+
+        for (int i = 0; i < n[1]; i++) {
+            for (int j = 0; j < n[2]; j++) {
+                int vij = uvw[1][index][i * n[2] + j];
+                v1.set(i * nNew[2] + j, vij);
+                v2.set((i + d[1]) * nNew[2] + j + d[2], vij);
+            }
+        }
+
+        for (int i = 0; i < n[2]; i++) {
+            for (int j = 0; j < n[0]; j++) {
+                int wij = uvw[2][index][i * n[0] + j];
+                w1.set(i * nNew[0] + j, wij);
+                w2.set((i + d[2]) * nNew[0] + j + d[0], wij);
+            }
+        }
+
+        uvw[0][index] = u1;
+        uvw[1][index] = v1;
+        uvw[2][index] = w1;
+
+        uvw[0][index + m] = u2;
+        uvw[1][index + m] = v2;
+        uvw[2][index + m] = w2;
+    }
+
+    for (int i = 0; i < 3; i++) {
+        n[i] = nNew[i];
+        nn[i] = nnNew[i];
+    }
+
+    m = mNew;
     initFlips();
 }
 
@@ -712,6 +792,30 @@ __device__ bool SchemeInteger::tryExtend(curandState &state, int n1, int n2, int
 
     while (tryReduce())
         ;
+
+    return true;
+}
+
+__device__ bool SchemeInteger::tryProduct(curandState &state, int n1, int n2, int n3) {
+    int indices[3];
+    int size = 0;
+
+    if (isValidProduct(0, n1, n2, n3))
+        indices[size++] = 0;
+
+    if (isValidProduct(1, n1, n2, n3))
+        indices[size++] = 1;
+
+    if (isValidProduct(2, n1, n2, n3))
+        indices[size++] = 2;
+
+    if (size == 0)
+        return false;
+
+    product(indices[curand(&state) % size]);
+
+    if (!validate())
+        printf("product invalid\n");
 
     return true;
 }

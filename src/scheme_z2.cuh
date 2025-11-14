@@ -38,6 +38,7 @@ struct SchemeZ2 {
     __device__ bool tryReduceGauss(curandState &state);
     __device__ bool tryProject(curandState &state, int n1 = MIN_PROJECT_N1, int n2 = MIN_PROJECT_N2, int n3 = MIN_PROJECT_N3);
     __device__ bool tryExtend(curandState &state, int n1 = MAX_EXTENSION_N1, int n2 = MAX_EXTENSION_N2, int n3 = MAX_EXTENSION_N3);
+    __device__ bool tryProduct(curandState &state, int n1 = MAX_EXTENSION_N1, int n2 = MAX_EXTENSION_N2, int n3 = MAX_EXTENSION_N3);
     __device__ void sandwiching(curandState &state);
     __device__ void swapBasis(curandState &state);
 
@@ -55,6 +56,7 @@ private:
     __device__ __host__ void addColumn(int matrix);
     __device__ __host__ void addRow(int matrix);
     __device__ __host__ bool isValidExtension(int i, int j, int k, int maxN1, int maxN2, int maxN3) const;
+    __device__ __host__ bool isValidProduct(int i, int maxN1, int maxN2, int maxN3) const;
 
     __device__ ReduceGaussCandidate getReduceGaussCandidate(curandState &state) const;
 
@@ -71,6 +73,7 @@ private:
     __device__ __host__ void reduceGauss(int i, int *combination, int combinationSize);
     __device__ __host__ void project(int p, int q);
     __device__ __host__ void extend(int p);
+    __device__ __host__ void product(int p);
     __device__ __host__ void swapBasisRows(int i1, int i2);
     __device__ __host__ void swapBasisColumns(int j1, int j2);
 

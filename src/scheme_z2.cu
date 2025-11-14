@@ -227,6 +227,26 @@ __device__ __host__ bool SchemeZ2::isValidExtension(int i, int j, int k, int max
     return true;
 }
 
+__device__ __host__ bool SchemeZ2::isValidProduct(int i, int maxN1, int maxN2, int maxN3) const {
+    int newN[3] = {n[0], n[1], n[2]};
+    int maxN[3] = {maxN1, maxN2, maxN3};
+
+    newN[i] *= 2;
+
+    if (m * 2 > MAX_RANK)
+        return false;
+
+    for (int p = 0; p < 3; p++) {
+        if (newN[p] * newN[(p + 1) % 3] > MAX_MATRIX_ELEMENTS)
+            return false;
+
+        if (newN[p] > maxN[p])
+            return false;
+    }
+
+    return true;
+}
+
 /******************************************************** helpers ********************************************************/
 __device__ ReduceGaussCandidate SchemeZ2::getReduceGaussCandidate(curandState &state) const {
     int permutation[3];
@@ -605,6 +625,67 @@ __device__ __host__ void SchemeZ2::extend(int p) {
     initFlips();
 }
 
+__device__ __host__ void SchemeZ2::product(int p) {
+    int nNew[3] = {n[0], n[1], n[2]};
+    int nnNew[3];
+    int d[3];
+    int mNew = m * 2;
+
+    nNew[p] *= 2;
+
+    for (int i = 0; i < 3; i++) {
+        nnNew[i] = nNew[i] * nNew[(i + 1) % 3];
+        d[i] = p == i ? n[i] : 0;
+    }
+
+    for (int index = 0; index < m; index++) {
+        T u1(0), u2(0);
+        T v1(0), v2(0);
+        T w1(0), w2(0);
+
+        for (int i = 0; i < n[0]; i++) {
+            for (int j = 0; j < n[1]; j++) {
+                T uij = (uvw[0][index] >> (i * n[1] + j)) & 1;
+                u1 |= uij << (i * nNew[1] + j);
+                u2 |= uij << ((i + d[0]) * nNew[1] + j + d[1]);
+            }
+        }
+
+        for (int i = 0; i < n[1]; i++) {
+            for (int j = 0; j < n[2]; j++) {
+                T vij = (uvw[1][index] >> (i * n[2] + j)) & 1;
+                v1 |= vij << (i * nNew[2] + j);
+                v2 |= vij << ((i + d[1]) * nNew[2] + j + d[2]);
+            }
+        }
+
+        for (int i = 0; i < n[2]; i++) {
+            for (int j = 0; j < n[0]; j++) {
+                T wij = (uvw[2][index] >> (i * n[0] + j)) & 1;
+                w1 |= wij << (i * nNew[0] + j);
+                w2 |= wij << ((i + d[2]) * nNew[0] + j + d[0]);
+            }
+        }
+
+        uvw[0][index] = u1;
+        uvw[1][index] = v1;
+        uvw[2][index] = w1;
+
+        uvw[0][index + m] = u2;
+        uvw[1][index + m] = v2;
+        uvw[2][index + m] = w2;
+    }
+
+    for (int i = 0; i < 3; i++) {
+        n[i] = nNew[i];
+        nn[i] = nnNew[i];
+    }
+
+    m = mNew;
+    initFlips();
+}
+
+
 __device__ __host__ void SchemeZ2::swapBasisRows(int i1, int i2) {
     int rows[MAX_MATRIX_ELEMENTS];
 
@@ -887,6 +968,30 @@ __device__ bool SchemeZ2::tryExpand(int count, curandState &state) {
     }
 
     return result;
+}
+
+__device__ bool SchemeZ2::tryProduct(curandState &state, int n1, int n2, int n3) {
+    int indices[3];
+    int size = 0;
+
+    if (isValidProduct(0, n1, n2, n3))
+        indices[size++] = 0;
+
+    if (isValidProduct(1, n1, n2, n3))
+        indices[size++] = 1;
+
+    if (isValidProduct(2, n1, n2, n3))
+        indices[size++] = 2;
+
+    if (size == 0)
+        return false;
+
+    product(indices[curand(&state) % size]);
+
+    if (!validate())
+        printf("product invalid\n");
+
+    return true;
 }
 
 __device__ void SchemeZ2::sandwiching(curandState &state) {
