@@ -8,7 +8,7 @@ struct Addition {
     int n;
     T values;
     T signs;
-    T carry;
+    bool valid;
 
     __device__ __host__ Addition();
     __device__ __host__ Addition(int n);
