@@ -38,15 +38,15 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
         {"344", 38}, {"345", 47}, {"346", 54}, {"347", 63}, {"348", 73},
         {"355", 58}, {"356", 68}, {"357", 79}, {"358", 90},
         {"366", 80}, {"367", 94}, {"368", 108},
-        {"377", 112}, {"378", 126},
+        {"377", 111}, {"378", 126},
         {"388", 145},
         {"444", 48}, {"445", 61}, {"446", 73}, {"447", 85}, {"448", 96},
-        {"455", 75}, {"456", 90}, {"457", 104}, {"458", 122},
+        {"455", 75}, {"456", 90}, {"457", 104}, {"458", 118},
         {"466", 105}, {"467", 123}, {"468", 140},
         {"477", 144}, {"478", 164},
         {"488", 182},
         {"555", 93}, {"556", 110}, {"557", 127}, {"558", 144},
-        {"566", 130}, {"567", 150}, {"568", 176},
+        {"566", 130}, {"567", 150}, {"568", 170},
         {"577", 176}, {"578", 205},
         {"588", 230},
         {"666", 153}, {"667", 183}, {"668", 203},
@@ -56,6 +56,31 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
         {"788", 306},
         {"888", 336}
     };
+
+#ifndef SCHEME_INTEGER
+    n2knownRanks["444"] = 47;
+    n2knownRanks["445"] = 60;
+    n2knownRanks["455"] = 73;
+    n2knownRanks["456"] = 89;
+
+    // maybe
+    n2knownRanks["245"] = 33;
+    n2knownRanks["257"] = 57; // ?
+    n2knownRanks["258"] = 66; // ?
+    n2knownRanks["268"] = 78; // ?
+    n2knownRanks["277"] = 80; // ?
+    n2knownRanks["336"] = 42; // ?
+    n2knownRanks["337"] = 51; // ?
+    n2knownRanks["338"] = 59; // ?
+    n2knownRanks["347"] = 64; // ?
+    n2knownRanks["348"] = 74; // ?
+    n2knownRanks["357"] = 80; // ?
+    n2knownRanks["366"] = 84; // ?
+    n2knownRanks["367"] = 99; // ?
+    n2knownRanks["377"] = 116; // ?
+    n2knownRanks["378"] = 128; // ?
+    n2knownRanks["578"] = 208; // ?
+#endif
 
     CUDA_CHECK(cudaMallocManaged(&schemes, schemesCount * sizeof(Scheme)));
     CUDA_CHECK(cudaMallocManaged(&schemesBest, schemesCount * sizeof(Scheme)));
@@ -188,7 +213,7 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
                 std::cout << " total: " << indices.size();
 
                 if (bestRanks[indices[0]] <= n2knownRanks[key])
-                    std::cout << ", " << (bestRanks[indices[0]] == n2knownRanks[key] ? "equal" : "better");
+                    std::cout << ", " << (bestRanks[indices[0]] == n2knownRanks[key] ? "equal" : "BETTER!!!");
             }
 
             std::cout << std::endl;
@@ -196,9 +221,9 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
 
         std::cout << "+-----------+-----------+--------+------+------+-------+------+------+-------------+" << std::endl;
 
-        for (size_t i = 0; i < indices.size(); i++)
-            if (i % (iteration % 25 + 1) == 0)
-                schemesBest[indices[0]].copyTo(schemes[indices[i]]);
+        // for (size_t i = 0; i < indices.size(); i++)
+        //     if (i % (iteration % 25 + 1) == 0)
+        //         schemesBest[indices[0]].copyTo(schemes[indices[i]]);
     }
 
     std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
@@ -374,10 +399,21 @@ __global__ void projectExtendKernel(Scheme *schemes, int schemesCount, curandSta
     Scheme &scheme = schemes[idx];
     curandState &state = states[idx];
 
-    if (curand_uniform(&state) < extendProbability)
-        scheme.tryExtend(state);
+    double d1 = double(scheme.n[0] - MIN_PROJECT_N1) / (MAX_EXTENSION_N1 - MIN_PROJECT_N1);
+    double d2 = double(scheme.n[1] - MIN_PROJECT_N2) / (MAX_EXTENSION_N2 - MIN_PROJECT_N2);
+    double d3 = double(scheme.n[2] - MIN_PROJECT_N3) / (MAX_EXTENSION_N3 - MIN_PROJECT_N3);
+    double d = (d1 + d2 + d3) / 3.0;
 
-    if (curand_uniform(&state) < projectProbability)
+    if (curand_uniform(&state) < extendProbability * (1 - d)) {
+        if (curand(&state) & 1) {
+            scheme.tryExtend(state);
+        }
+        else {
+            scheme.tryProduct(state);
+        }
+    }
+
+    if (curand_uniform(&state) < projectProbability * d)
         scheme.tryProject(state);
 
     if (!scheme.validate())
