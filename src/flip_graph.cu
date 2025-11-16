@@ -41,7 +41,7 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
         {"377", 111}, {"378", 126},
         {"388", 145},
         {"444", 48}, {"445", 61}, {"446", 73}, {"447", 85}, {"448", 96},
-        {"455", 75}, {"456", 90}, {"457", 104}, {"458", 118},
+        {"455", 76}, {"456", 90}, {"457", 104}, {"458", 118},
         {"466", 105}, {"467", 123}, {"468", 140},
         {"477", 144}, {"478", 164},
         {"488", 182},
@@ -57,25 +57,60 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
         {"888", 336}
     };
 
-#ifndef SCHEME_INTEGER
+#ifdef SCHEME_INTEGER
+    n2knownRanks["245"] = 33;
+    n2knownRanks["257"] = 57;
+    n2knownRanks["258"] = 66;
+    n2knownRanks["266"] = 57;
+    n2knownRanks["267"] = 69;
+    n2knownRanks["268"] = 78;
+    n2knownRanks["277"] = 77;
+    n2knownRanks["278"] = 90;
+    n2knownRanks["336"] = 44;
+    n2knownRanks["337"] = 51;
+    n2knownRanks["338"] = 58;
+    n2knownRanks["346"] = 58;
+    n2knownRanks["347"] = 67;
+    n2knownRanks["348"] = 74;
+    n2knownRanks["356"] = 70;
+    n2knownRanks["357"] = 84;
+    n2knownRanks["358"] = 94;
+    n2knownRanks["366"] = 85;
+    n2knownRanks["367"] = 101;
+    n2knownRanks["368"] = 116;
+    n2knownRanks["377"] = 119;
+    n2knownRanks["378"] = 133;
+    n2knownRanks["388"] = 148;
+    n2knownRanks["444"] = 49;
+    n2knownRanks["445"] = 61;
+    n2knownRanks["446"] = 73;
+    n2knownRanks["448"] = 96;
+    n2knownRanks["477"] = 149;
+    n2knownRanks["568"] = 176;
+    n2knownRanks["577"] = 185;
+    n2knownRanks["578"] = 208;
+    n2knownRanks["667"] = 185;
+    n2knownRanks["777"] = 281;
+    n2knownRanks["778"] = 302;
+#else
     n2knownRanks["444"] = 47;
     n2knownRanks["445"] = 60;
     n2knownRanks["455"] = 73;
     n2knownRanks["456"] = 89;
+    n2knownRanks["448"] = 94;
 
     // maybe
     n2knownRanks["245"] = 33;
     n2knownRanks["257"] = 57; // ?
     n2knownRanks["258"] = 66; // ?
     n2knownRanks["268"] = 78; // ?
-    n2knownRanks["277"] = 78; // ?
+    n2knownRanks["277"] = 77; // ?
     n2knownRanks["336"] = 42; // ?
     n2knownRanks["338"] = 58; // ?
     n2knownRanks["347"] = 64; // ?
     n2knownRanks["348"] = 74; // ?
-    n2knownRanks["357"] = 80; // ?
     n2knownRanks["366"] = 84; // ?
-    n2knownRanks["367"] = 99; // ?
+    n2knownRanks["367"] = 98; // ?
     n2knownRanks["377"] = 116; // ?
     n2knownRanks["378"] = 128; // ?
     n2knownRanks["578"] = 207; // ?
@@ -245,9 +280,9 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
 
         std::cout << "+-----------+-----------+--------+------+------+-------+------+------+-------------+" << std::endl;
 
-        // for (size_t i = 0; i < indices.size(); i++)
-        //     if (i % (iteration % 25 + 1) == 0)
-        //         schemesBest[indices[0]].copyTo(schemes[indices[i]]);
+        for (size_t i = 0; i < indices.size(); i++)
+            if (i % (iteration % 10 + 1) == 0)
+                schemesBest[indices[0]].copyTo(schemes[indices[i]]);
     }
 
     std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
@@ -391,8 +426,9 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
     curandState& state = states[idx];
     int flipsCount = flips[idx];
     int bestRank = bestRanks[idx];
+    int iterations = randint(1, maxIterations, state);
 
-    for (int iteration = 0; iteration < maxIterations; iteration++) {
+    for (int iteration = 0; iteration < iterations; iteration++) {
         if (!scheme.tryFlip(state)) {
             scheme.tryExpand(randint(1, 2, state), state);
             continue;
