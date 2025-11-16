@@ -63,6 +63,22 @@ __device__ __host__ void Addition::inverse() {
     signs = (~signs) & values;
 }
 
+__device__ void Addition::random(curandState &state) {
+    values = 0;
+    signs = 0;
+
+    for (int i = 0; i < n; i += 16) {
+        uint16_t signBits = curand(&state) & 0xFFFF;
+        uint16_t valuesBits = curand(&state) & 0xFFFF;
+
+        values |= valuesBits << i;
+        signs |= signBits << i;
+    }
+
+    signs &= values;
+    valid = true;
+}
+
 __device__ __host__ bool Addition::operator==(const Addition &addition) const {
     return values == addition.values && signs == addition.signs;
 }

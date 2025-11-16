@@ -68,10 +68,9 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["257"] = 57; // ?
     n2knownRanks["258"] = 66; // ?
     n2knownRanks["268"] = 78; // ?
-    n2knownRanks["277"] = 80; // ?
+    n2knownRanks["277"] = 78; // ?
     n2knownRanks["336"] = 42; // ?
-    n2knownRanks["337"] = 51; // ?
-    n2knownRanks["338"] = 59; // ?
+    n2knownRanks["338"] = 58; // ?
     n2knownRanks["347"] = 64; // ?
     n2knownRanks["348"] = 74; // ?
     n2knownRanks["357"] = 80; // ?
@@ -79,7 +78,7 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["367"] = 99; // ?
     n2knownRanks["377"] = 116; // ?
     n2knownRanks["378"] = 128; // ?
-    n2knownRanks["578"] = 208; // ?
+    n2knownRanks["578"] = 207; // ?
 #endif
 
     CUDA_CHECK(cudaMallocManaged(&schemes, schemesCount * sizeof(Scheme)));
@@ -91,6 +90,31 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
 
 void FlipGraph::initialize() {
     initializeSchemesKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, n1, n2, n3, schemesCount, seed);
+
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+bool FlipGraph::initializeFromFile(std::istream &f) {
+    int count;
+    f >> count;
+    std::cout << "Start reading " << std::min(count, schemesCount) << " schemes" << std::endl;
+
+    for (int i = 0; i < count && i < schemesCount; i++)
+        if (!schemes[i].read(f))
+            return false;
+
+    initializeCopyKernel<<<numBlocks, blockSize>>>(schemes, schemesCount, count);
+
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+    return true;
+}
+
+void FlipGraph::initializeNaive() {
+    std::cout << "Start initializing with naive schemes" << std::endl;
+
+    initializeNaiveKernel<<<numBlocks, blockSize>>>(schemes, schemesCount, n1, n2, n3);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -328,12 +352,24 @@ FlipGraph::~FlipGraph() {
 }
 
 /************************************************************************************ kernels ************************************************************************************/
+__global__ void initializeNaiveKernel(Scheme *schemes, int schemesCount, int n1, int n2, int n3) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < schemesCount)
+        schemes[idx].initializeNaive(n1, n2, n3);
+}
+
+__global__ void initializeCopyKernel(Scheme *schemes, int schemesCount, int count) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < count || idx >= schemesCount)
+        return;
+
+    schemes[idx % count].copyTo(schemes[idx]);
+}
+
 __global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int n1, int n2, int n3, int schemesCount, int seed) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= schemesCount)
         return;
-
-    schemes[idx].initializeNaive(n1, n2, n3);
 
     if (!schemes[idx].validate())
         printf("not valid initialized scheme %d\n", idx);

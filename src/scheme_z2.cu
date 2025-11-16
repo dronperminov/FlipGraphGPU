@@ -57,27 +57,6 @@ __device__ __host__ void SchemeZ2::initializeNaive(int n1, int n2, int n3) {
         printf("not valid naive scheme\n");
 }
 
-__device__ __host__ void SchemeZ2::initializeFrom(int n1, int n2, int n3, int m, const T uvw[3][MAX_RANK]) {
-    n[0] = n1;
-    n[1] = n2;
-    n[2] = n3;
-
-    nn[0] = n1 * n2;
-    nn[1] = n2 * n3;
-    nn[2] = n3 * n1;
-
-    this->m = m;
-
-    for (int i = 0; i < 3; i++)
-        for (int index = 0; index < m; index++)
-            this->uvw[i][index] = uvw[i][index];
-
-    initFlips();
-
-    if (!validate())
-        printf("not valid from scheme %d %d %d %d\n", n1, n2, n3, m);
-}
-
 __device__ __host__ void SchemeZ2::copyTo(SchemeZ2 &target) const {
     target.m = m;
 
@@ -90,6 +69,25 @@ __device__ __host__ void SchemeZ2::copyTo(SchemeZ2 &target) const {
     }
 
     target.initFlips();
+}
+
+__host__ bool SchemeZ2::read(std::istream &is) {
+    is >> n[0] >> n[1] >> n[2] >> m;
+
+    if (n[0] * n[1] > MAX_MATRIX_ELEMENTS || n[1] * n[2] > MAX_MATRIX_ELEMENTS || n[2] * n[0] > MAX_MATRIX_ELEMENTS || m > MAX_RANK) {
+        printf("invalid scheme sizes (%d, %d, %d, %d)\n", n[0], n[1], n[2], m);
+        return false;
+    }
+
+    for (int i = 0; i < 3; i++) {
+        nn[i] = n[i] * n[(i + 1) % 3];
+
+        for (int index = 0; index < m; index++)
+            is >> uvw[i][index];
+    }
+
+    initFlips();
+    return true;
 }
 
 __device__ __host__ void SchemeZ2::initFlips() {

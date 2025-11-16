@@ -18,7 +18,8 @@ int main(int argc, char* argv[]) {
     parser.add("-n3", ArgType::Natural, "INT", "number of second matrix columns");
     parser.add("--schemes", ArgType::Natural, "INT", "number of schemes", "1024");
     parser.add("--max-iterations", ArgType::Natural, "INT", "number of flips per iterations", "10000");
-    parser.add("--path", ArgType::String, "PATH", "number of flips per iterations", "schemes");
+    parser.add("--path", ArgType::String, "PATH", "path to save schemes", "schemes");
+    parser.add("--input-path", ArgType::String, "PATH", "path to init schemes", "null");
     parser.add("--block-size", ArgType::Natural, "INT", "number of cuda threads", "32");
     parser.add("--expand-probability", ArgType::Real, "REAL", "expand edge probability (divided by max iterations)", "0.1");
     parser.add("--reduce-probability", ArgType::Real, "REAL", "reduce edge probability (divided by max iterations)", "1");
@@ -37,6 +38,7 @@ int main(int argc, char* argv[]) {
     int schemesCount = std::stoi(parser.get("--schemes"));
     int maxIterations = std::stoi(parser.get("--max-iterations"));
     std::string path = parser.get("--path");
+    std::string inputPath = parser.get("--input-path");
     int blockSize = std::stoi(parser.get("--block-size"));
     int seed = std::stoi(parser.get("--seed"));
 
@@ -77,6 +79,18 @@ int main(int argc, char* argv[]) {
     std::cout << "- seed: " << seed << std::endl;
 
     FlipGraph flipGraph(n1, n2, n3, schemesCount, blockSize, maxIterations, path, probabilities, seed);
+
+    if (inputPath != "null") {
+        std::ifstream f(inputPath);
+        bool result = flipGraph.initializeFromFile(f);
+        f.close();
+
+        if (!result)
+            return -1;
+    }
+    else {
+        flipGraph.initializeNaive();
+    }
 
     try {
         flipGraph.run();

@@ -26,8 +26,8 @@ struct SchemeZ2 {
 
     __device__ __host__ bool validate() const;
     __device__ __host__ void initializeNaive(int n1, int n2, int n3);
-    __device__ __host__ void initializeFrom(int n1, int n2, int n3, int m, const T uvw[3][MAX_RANK]);
     __device__ __host__ void copyTo(SchemeZ2 &target) const;
+    __host__ bool read(std::istream &is);
 
     __device__ bool tryFlip(curandState &state);
     __device__ bool tryPlus(curandState &state);

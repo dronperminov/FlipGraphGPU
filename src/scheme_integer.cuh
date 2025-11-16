@@ -22,11 +22,12 @@ struct SchemeInteger {
 
     __device__ __host__ bool validate() const;
     __device__ __host__ void initializeNaive(int n1, int n2, int n3);
-    __device__ __host__ void initializeFrom(int n1, int n2, int n3, int m, int scheme[3][MAX_RANK][MAX_MATRIX_ELEMENTS]);
     __device__ __host__ void copyTo(SchemeInteger &target);
+    __host__ bool read(std::istream &is);
 
     __device__ bool tryFlip(curandState &state);
     __device__ bool tryPlus(curandState &state);
+    __device__ bool trySplit(curandState &state);
     __device__ bool trySplitExisted(curandState &state);
     __device__ bool tryExpand(int count, curandState &state);
     __device__ __host__ bool tryReduce();

@@ -63,28 +63,6 @@ __device__ __host__ void SchemeInteger::initializeNaive(int n1, int n2, int n3) 
     initFlips();
 }
 
-__device__ __host__ void SchemeInteger::initializeFrom(int n1, int n2, int n3, int m, int scheme[3][MAX_RANK][MAX_MATRIX_ELEMENTS]) {
-    n[0] = n1;
-    n[1] = n2;
-    n[2] = n3;
-
-    nn[0] = n1 * n2;
-    nn[1] = n2 * n3;
-    nn[2] = n3 * n1;
-
-    this->m = m;
-
-    for (int i = 0; i < 3; i++)
-        for (int index = 0; index < m; index++)
-            uvw[i][index] = Addition(nn[i], scheme[i][index]);
-
-    fixSigns();
-    initFlips();
-
-    if (!validate())
-        printf("not valid from scheme %d %d %d %d\n", n1, n2, n3, m);
-}
-
 __device__ __host__ void SchemeInteger::copyTo(SchemeInteger &target) {
     target.m = m;
 
@@ -97,6 +75,34 @@ __device__ __host__ void SchemeInteger::copyTo(SchemeInteger &target) {
     }
 
     target.initFlips();
+}
+
+__host__ bool SchemeInteger::read(std::istream &is) {
+    is >> n[0] >> n[1] >> n[2] >> m;
+
+    if (n[0] * n[1] > MAX_MATRIX_ELEMENTS || n[1] * n[2] > MAX_MATRIX_ELEMENTS || n[2] * n[0] > MAX_MATRIX_ELEMENTS || m > MAX_RANK) {
+        printf("invalid scheme sizes (%d, %d, %d, %d)\n", n[0], n[1], n[2], m);
+        return false;
+    }
+
+    int value;
+
+    for (int i = 0; i < 3; i++) {
+        nn[i] = n[i] * n[(i + 1) % 3];
+
+        for (int index = 0; index < m; index++) {
+            uvw[i][index] = Addition(nn[i]);
+
+            for (int j = 0; j < nn[i]; j++) {
+                is >> value;
+                uvw[i][index].set(j, value);
+            }
+        }
+    }
+
+    fixSigns();
+    initFlips();
+    return true;
 }
 
 __device__ __host__ void SchemeInteger::initFlips() {
@@ -672,6 +678,28 @@ __device__ bool SchemeInteger::tryPlus(curandState &state) {
     return true;
 }
 
+__device__ bool SchemeInteger::trySplit(curandState &state) {
+    if (m >= MAX_RANK)
+        return false;
+
+    int index = curand(&state) % m;
+
+    int permutation[3];
+    randomPermutation(permutation, 3, state);
+    int i = permutation[0];
+    int j = permutation[1];
+    int k = permutation[2];
+
+    Addition a(nn[i]);
+
+    do {
+        a.random(state);
+    } while (!uvw[i][index].limitSub(a, i != 2));
+
+    split(i, j, k, index, a);
+    return true;
+}
+
 __device__ bool SchemeInteger::trySplitExisted(curandState &state) {
     if (m >= MAX_RANK)
         return false;
@@ -696,10 +724,12 @@ __device__ bool SchemeInteger::tryExpand(int count, curandState &state) {
     bool result = false;
 
     for (int i = 0; i < count && m < MAX_RANK; i++) {
-        int v = curand(&state) % 2;
+        int v = curand(&state) % 3;
 
         if (v == 0)
             result |= tryPlus(state);
+        else if (v == 1)
+            result |= trySplit(state);
         else
             result |= trySplitExisted(state);
     }
