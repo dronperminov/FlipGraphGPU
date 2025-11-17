@@ -751,7 +751,7 @@ __device__ __host__ void SchemeZ2::swapBasisColumns(int j1, int j2) {
 }
 
 /*************************************************** random operators ****************************************************/
-__device__ bool SchemeZ2::tryFlip(curandState &state) {
+__device__ bool SchemeZ2::tryFlip(curandState &state, bool checkReduce) {
     int size = flips[0].size + flips[1].size + flips[2].size;
 
     if (!size)
@@ -794,7 +794,7 @@ __device__ bool SchemeZ2::tryFlip(curandState &state) {
         index2 = tmp;
     }
 
-    flip(i, j, k, index1, index2);
+    flip(i, j, k, index1, index2, checkReduce);
     return true;
 }
 

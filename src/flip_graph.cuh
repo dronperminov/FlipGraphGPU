@@ -14,16 +14,9 @@
 
 #include "config.cuh"
 #include "random.cuh"
+#include "utils.cuh"
 #include "scheme_integer.cuh"
 #include "scheme_z2.cuh"
-
-#ifdef SCHEME_INTEGER
-#define Scheme SchemeInteger
-const std::string mod = "mod0";
-#else
-#define Scheme SchemeZ2
-const std::string mod = "mod2";
-#endif
 
 struct FlipGraphProbabilities {
     double extend;
@@ -74,10 +67,7 @@ private:
     void report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes, int count = 3);
 
     std::string prettyFlips(int flips) const;
-    std::string prettyTime(double elapsed) const;
     std::string getSavePath(const Scheme &scheme, int iteration, int runId) const;
-    std::string getKey(int n1, int n2, int n3) const;
-    std::string getKey(const Scheme &scheme) const;
     std::unordered_map<std::string, std::vector<int>> getSortedIndices(int count) const;
 };
 

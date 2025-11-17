@@ -1,0 +1,49 @@
+#pragma once
+
+#include <algorithm>
+#include <chrono>
+#include <iomanip>
+#include <iostream>
+#include <numeric>
+#include <vector>
+
+#include "config.cuh"
+#include "random.cuh"
+#include "utils.cuh"
+#include "scheme_integer.cuh"
+#include "scheme_z2.cuh"
+
+class ComplexityMinimizer {
+    int schemesCount;
+    std::string path;
+
+    int maxIterations;
+    int seed;
+    int topCount;
+    int blockSize;
+    int numBlocks;
+
+    Scheme *schemes;
+    Scheme *schemesBest;
+    int *bestComplexities;
+    int bestComplexity;
+    curandState *states;
+
+    std::vector<int> indices;
+public:
+    ComplexityMinimizer(int schemesCount, int blockSize, int maxIterations, const std::string &path, int seed, int topCount = 10);
+
+    void minimize(const Scheme &scheme, int targetComplexity);
+
+    ~ComplexityMinimizer();
+private:
+    void initialize(const Scheme &scheme);
+    void minimizeIteration();
+    void updateBest(int iteration);
+    void report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes);
+
+    std::string getSavePath(const Scheme &scheme, int iteration, int runId) const;
+};
+
+__global__ void initializeKernel(Scheme *schemes, Scheme *schemesBest, int *bestComplexities, curandState *states, int schemesCount, int complexity, int seed);
+__global__ void minimizeKernel(Scheme *schemes, Scheme *schemesBest, int *bestComplexities, curandState *states, int schemesCount, int iterations);

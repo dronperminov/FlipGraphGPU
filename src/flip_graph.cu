@@ -1,14 +1,5 @@
 #include "flip_graph.cuh"
 
-#define CUDA_CHECK(call) \
-    do { \
-        cudaError_t error = call; \
-        if (error != cudaSuccess) { \
-            std::cerr << "CUDA error at " << __FILE__ << ":" << __LINE__ << ": " << cudaGetErrorString(error) << std::endl; \
-            exit(EXIT_FAILURE); \
-        } \
-    } while(0)
-
 
 FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, int maxIterations, const std::string &path, const FlipGraphProbabilities &probabilities, int seed) {
     this->n1 = n1;
@@ -300,25 +291,6 @@ std::string FlipGraph::prettyFlips(int flips) const {
     return ss.str();
 }
 
-std::string FlipGraph::prettyTime(double elapsed) const {
-    std::stringstream ss;
-
-    if (elapsed < 60) {
-        ss << std::setprecision(3) << std::fixed << elapsed;
-    }
-    else {
-        int seconds = int(elapsed + 0.5);
-        int hours = seconds / 3600;
-        int minutes = (seconds % 3600) / 60;
-
-        ss << std::setw(2) << std::setfill('0') << hours << ":";
-        ss << std::setw(2) << std::setfill('0') << minutes << ":";
-        ss << std::setw(2) << std::setfill('0') << (seconds % 60);
-    }
-
-    return ss.str();
-}
-
 std::string FlipGraph::getSavePath(const Scheme &scheme, int iteration, int runId) const {
     std::stringstream ss;
 
@@ -332,19 +304,6 @@ std::string FlipGraph::getSavePath(const Scheme &scheme, int iteration, int runI
     ss << "_" << mod << ".json";
 
     return ss.str();
-}
-
-std::string FlipGraph::getKey(int n1, int n2, int n3) const {
-    std::vector<int> n = {n1, n2, n3};
-    std::sort(n.begin(), n.end());
-
-    std::stringstream ss;
-    ss << n[0] << n[1] << n[2];
-    return ss.str();
-}
-
-std::string FlipGraph::getKey(const Scheme &scheme) const {
-    return getKey(scheme.n[0], scheme.n[1], scheme.n[2]);
 }
 
 std::unordered_map<std::string, std::vector<int>> FlipGraph::getSortedIndices(int count) const {
@@ -367,6 +326,11 @@ FlipGraph::~FlipGraph() {
     if (schemes) {
         cudaFree(schemes);
         schemes = nullptr;
+    }
+
+    if (schemesBest) {
+        cudaFree(schemesBest);
+        schemesBest = nullptr;
     }
 
     if (states) {

@@ -31,7 +31,7 @@ struct SchemeZ2 {
 
     __device__ __host__ int getComplexity() const;
 
-    __device__ bool tryFlip(curandState &state);
+    __device__ bool tryFlip(curandState &state, bool checkReduce = true);
     __device__ bool tryPlus(curandState &state);
     __device__ bool trySplit(curandState &state);
     __device__ bool trySplitExisted(curandState &state);
@@ -68,7 +68,7 @@ private:
     __device__ void invertibleMatrixZ2(int n, int *matrix, int *inverse, curandState &state) const;
     __device__ T matmul(const T matrix, int *left, int *right, int n1, int n2) const;
 
-    __device__ __host__ void flip(int i, int j, int k, int index1, int index2, bool checkReduce = true);
+    __device__ __host__ void flip(int i, int j, int k, int index1, int index2, bool checkReduce);
     __device__ __host__ void plus(int i, int j, int k, int index1, int index2, int variant);
     __device__ __host__ void split(int i, int j, int k, int index, const T a1);
     __device__ __host__ void reduce(int i, int index1, int index2);

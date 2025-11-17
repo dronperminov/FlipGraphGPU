@@ -22,12 +22,12 @@ struct SchemeInteger {
 
     __device__ __host__ bool validate() const;
     __device__ __host__ void initializeNaive(int n1, int n2, int n3);
-    __device__ __host__ void copyTo(SchemeInteger &target);
+    __device__ __host__ void copyTo(SchemeInteger &target) const;
     __host__ bool read(std::istream &is);
 
     __device__ __host__ int getComplexity() const;
 
-    __device__ bool tryFlip(curandState &state);
+    __device__ bool tryFlip(curandState &state, bool checkReduce = true);
     __device__ bool tryPlus(curandState &state);
     __device__ bool trySplit(curandState &state);
     __device__ bool trySplitExisted(curandState &state);
@@ -56,7 +56,7 @@ private:
     __device__ __host__ bool isValidProduct(int i, int maxN1, int maxN2, int maxN3) const;
     __device__ __host__ bool fixSigns();
 
-    __device__ __host__ void flip(int i, int j, int k, int index1, int index2, bool checkReduce = true);
+    __device__ __host__ void flip(int i, int j, int k, int index1, int index2, bool checkReduce);
     __device__ __host__ void plus(int i, int j, int k, int index1, int index2, int variant);
     __device__ __host__ void split(int i, int j, int k, int index, const Addition& addition);
     __device__ __host__ void reduceAdd(int i, int index1, int index2);

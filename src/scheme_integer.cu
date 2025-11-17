@@ -63,7 +63,7 @@ __device__ __host__ void SchemeInteger::initializeNaive(int n1, int n2, int n3) 
     initFlips();
 }
 
-__device__ __host__ void SchemeInteger::copyTo(SchemeInteger &target) {
+__device__ __host__ void SchemeInteger::copyTo(SchemeInteger &target) const {
     target.m = m;
 
     for (int i = 0; i < 3; i++) {
@@ -597,7 +597,7 @@ __device__ __host__ void SchemeInteger::swapBasisColumns(int j1, int j2) {
 }
 
 /*************************************************** random operators ****************************************************/
-__device__ bool SchemeInteger::tryFlip(curandState &state) {
+__device__ bool SchemeInteger::tryFlip(curandState &state, bool checkReduce) {
     int size = flips[0].size + flips[1].size + flips[2].size;
     int indices[MAX_PAIRS];
 
@@ -643,22 +643,22 @@ __device__ bool SchemeInteger::tryFlip(curandState &state) {
 
         if (uvw[j][index1].limitSum(uvw[j][index2], j != 2) && uvw[k][index2].limitSub(uvw[k][index1])) {
             if (k == 2 || uvw[k][index2].positiveFirstNonZeroSub(uvw[k][index1])) {
-                flip(i, j, k, index1, index2);
+                flip(i, j, k, index1, index2, checkReduce);
                 return true;
             }
             else {
-                flip(i, j, k, index2, index1);
+                flip(i, j, k, index2, index1, checkReduce);
                 return true;
             }
         }
 
         if (uvw[k][index1].limitSum(uvw[k][index2], k != 2) && uvw[j][index2].limitSub(uvw[j][index1])) {
             if (j == 2 || uvw[j][index2].positiveFirstNonZeroSub(uvw[j][index1])) {
-                flip(i, k, j, index1, index2);
+                flip(i, k, j, index1, index2, checkReduce);
                 return true;
             }
             else {
-                flip(i, k, j, index2, index1);
+                flip(i, k, j, index2, index1, checkReduce);
                 return true;
             }
         }
