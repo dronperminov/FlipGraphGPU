@@ -39,6 +39,8 @@ struct Addition {
     __device__ __host__ bool positiveFirstNonZero() const;
     __device__ __host__ bool positiveFirstNonZeroSub(const Addition &addition) const;
 
+    __device__ __host__ int nonZeroCount() const;
+
     __device__ __host__ operator bool() const;
 
     friend std::ostream& operator<<(std::ostream &os, const Addition &addition);

@@ -199,6 +199,14 @@ __device__ __host__ bool Addition::positiveFirstNonZero() const {
     return values == 0 || (values & ~(values & (values - 1)) & ~signs);
 }
 
+__device__ __host__ int Addition::nonZeroCount() const {
+#if defined(__CUDA_ARCH__)
+    return __popcll(values);
+#else
+    return __builtin_popcountll(values);
+#endif
+}
+
 std::ostream& operator<<(std::ostream &os, const Addition &addition) {
     for (int i = 0; i < addition.n; i++) {
         if (i > 0)

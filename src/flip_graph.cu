@@ -82,9 +82,6 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["378"] = 132;
     n2knownRanks["388"] = 148;
     n2knownRanks["444"] = 49;
-    n2knownRanks["445"] = 61;
-    n2knownRanks["446"] = 73;
-    n2knownRanks["448"] = 96;
     n2knownRanks["477"] = 148;
     n2knownRanks["568"] = 176;
     n2knownRanks["577"] = 185;
@@ -280,8 +277,9 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
 
         std::cout << "+-----------+-----------+--------+------+------+-------+------+------+-------------+" << std::endl;
 
+        int period = 1 + rand() % 10;
         for (size_t i = 0; i < indices.size(); i++)
-            if (i % (iteration % 10 + 1) == 0)
+            if (i % (iteration % period + 1) == 0)
                 schemesBest[indices[0]].copyTo(schemes[indices[i]]);
     }
 
@@ -327,6 +325,7 @@ std::string FlipGraph::getSavePath(const Scheme &scheme, int iteration, int runI
     ss << path << "/";
     ss << getKey(scheme);
     ss << "_m" << scheme.m;
+    ss << "_c" << scheme.getComplexity();
     ss << "_iteration" << iteration;
     ss << "_run" << runId;
     ss << "_" << scheme.n[0] << scheme.n[1] << scheme.n[2];
@@ -441,9 +440,8 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
             scheme.copyTo(schemesBest[idx]);
         }
 
-        if (curand_uniform(&state) * maxIterations < reduceProbability) {
+        if (curand_uniform(&state) * maxIterations < reduceProbability)
             scheme.tryReduce();
-        }
 
         if (curand_uniform(&state) * maxIterations < expandProbability)
             scheme.tryExpand(randint(1, 2, state), state);

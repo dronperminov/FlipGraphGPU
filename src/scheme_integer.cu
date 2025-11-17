@@ -105,6 +105,16 @@ __host__ bool SchemeInteger::read(std::istream &is) {
     return true;
 }
 
+__device__ __host__ int SchemeInteger::getComplexity() const {
+    int count = 0;
+
+    for (int index = 0; index < m; index++)
+        for (int i = 0; i < 3; i++)
+            count += uvw[i][index].nonZeroCount();
+
+    return count - 2 * m - nn[2];
+}
+
 __device__ __host__ void SchemeInteger::initFlips() {
     for (int i = 0; i < 3; i++) {
         flips[i].clear();

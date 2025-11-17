@@ -90,6 +90,20 @@ __host__ bool SchemeZ2::read(std::istream &is) {
     return true;
 }
 
+__device__ __host__ int SchemeZ2::getComplexity() const {
+    int count = 0;
+
+    for (int index = 0; index < m; index++)
+        for (int i = 0; i < 3; i++)
+            #if defined(__CUDA_ARCH__)
+                count += __popcll(uvw[i][index]);
+            #else
+                count += __builtin_popcountll(uvw[i][index]);
+            #endif
+
+    return count - 2 * m - nn[2];
+}
+
 __device__ __host__ void SchemeZ2::initFlips() {
     for (int i = 0; i < 3; i++) {
         flips[i].clear();

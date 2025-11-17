@@ -29,6 +29,8 @@ struct SchemeZ2 {
     __device__ __host__ void copyTo(SchemeZ2 &target) const;
     __host__ bool read(std::istream &is);
 
+    __device__ __host__ int getComplexity() const;
+
     __device__ bool tryFlip(curandState &state);
     __device__ bool tryPlus(curandState &state);
     __device__ bool trySplit(curandState &state);

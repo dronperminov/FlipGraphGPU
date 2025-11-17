@@ -25,6 +25,8 @@ struct SchemeInteger {
     __device__ __host__ void copyTo(SchemeInteger &target);
     __host__ bool read(std::istream &is);
 
+    __device__ __host__ int getComplexity() const;
+
     __device__ bool tryFlip(curandState &state);
     __device__ bool tryPlus(curandState &state);
     __device__ bool trySplit(curandState &state);
