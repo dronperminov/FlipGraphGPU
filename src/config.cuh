@@ -26,8 +26,8 @@ const int MAX_SANDWICHING_ELEMENTS = MAX_SANDWICHING_N * MAX_SANDWICHING_N;
 
 #ifdef SCHEME_INTEGER
 #define Scheme SchemeInteger
-const std::string mod = "mod0";
+const std::string ring = "ZT";
 #else
 #define Scheme SchemeZ2
-const std::string mod = "mod2";
+const std::string ring = "Z2";
 #endif

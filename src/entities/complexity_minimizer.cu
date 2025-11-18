@@ -111,8 +111,8 @@ std::string ComplexityMinimizer::getSavePath(const Scheme &scheme, int iteration
     ss << "_c" << scheme.getComplexity();
     ss << "_iteration" << iteration;
     ss << "_run" << runId;
-    ss << "_" << scheme.n[0] << scheme.n[1] << scheme.n[2];
-    ss << "_" << mod << ".json";
+    ss << "_" << getKey(scheme, false);
+    ss << "_" << ring << ".json";
 
     return ss.str();
 }

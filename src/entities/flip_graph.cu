@@ -348,7 +348,7 @@ std::string FlipGraph::getSavePath(const Scheme &scheme, int iteration, int runI
     ss << "_iteration" << iteration;
     ss << "_run" << runId;
     ss << "_" << getKey(scheme, false);
-    ss << "_" << mod << ".json";
+    ss << "_" << ring << ".json";
 
     return ss.str();
 }
