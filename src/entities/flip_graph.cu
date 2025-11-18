@@ -99,10 +99,7 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["477"] = 148;
     n2knownRanks["479"] = 189;
 
-    n2knownRanks["559"] = 168;
-
     n2knownRanks["568"] = 176;
-    n2knownRanks["569"] = 200;
 
     n2knownRanks["577"] = 184;
     n2knownRanks["578"] = 207;
@@ -483,6 +480,12 @@ __global__ void projectExtendKernel(Scheme *schemes, Scheme *schemesBest, int sc
     Scheme &scheme = schemes[idx];
     curandState &state = states[idx];
 
+    if (curand_uniform(&state) < 0.5)
+        scheme.swapSize(state);
+
+    int index = curand(&state) % schemesCount;
+    scheme.tryMerge(schemesBest[index], state);
+
     int n1 = min(max(scheme.n[0], MIN_PROJECT_N1), MAX_EXTENSION_N1);
     int n2 = min(max(scheme.n[1], MIN_PROJECT_N2), MAX_EXTENSION_N2);
     int n3 = min(max(scheme.n[2], MIN_PROJECT_N3), MAX_EXTENSION_N3);
@@ -503,13 +506,6 @@ __global__ void projectExtendKernel(Scheme *schemes, Scheme *schemesBest, int sc
 
     if (curand_uniform(&state) < projectProbability * d)
         scheme.tryProject(state);
-
-    if (curand_uniform(&state) < 0.5) {
-        scheme.swapSize(state);
-    }
-
-    int index = curand(&state) % schemesCount;
-    scheme.tryMerge(schemesBest[index], state);
 
     if (!scheme.validate())
         printf("invalid (%d) scheme (project extend)\n", idx);

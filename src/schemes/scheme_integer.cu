@@ -830,10 +830,10 @@ __device__ bool SchemeInteger::trySplit(curandState &state) {
     int k = permutation[2];
 
     Addition a(nn[i]);
+    a.random(state);
 
-    do {
-        a.random(state);
-    } while (!uvw[i][index].limitSub(a, i != 2));
+    if (!uvw[i][index].limitSub(a, i != 2))
+        return false;
 
     split(i, j, k, index, a);
     return true;
@@ -850,7 +850,10 @@ __device__ bool SchemeInteger::trySplitExisted(curandState &state) {
         index1 = curand(&state) % m;
         index2 = curand(&state) % m;
         i = curand(&state) % 3;
-    } while (index1 == index2 || uvw[i][index1] == uvw[i][index2] || !uvw[i][index1].limitSub(uvw[i][index2], i != 2));
+    } while (index1 == index2 || uvw[i][index1] == uvw[i][index2]);
+
+    if (!uvw[i][index1].limitSub(uvw[i][index2], i != 2))
+        return false;
 
     int j = (i + 1) % 3;
     int k = (i + 2) % 3;
