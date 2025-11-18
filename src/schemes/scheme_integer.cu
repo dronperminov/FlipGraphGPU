@@ -1067,6 +1067,7 @@ void SchemeInteger::save(const std::string &path) {
     f << "    \"n\": [" << n[0] << ", " << n[1] << ", " << n[2] << "]," << std::endl;
     f << "    \"m\": " << m << "," << std::endl;
     f << "    \"z2\": false," << std::endl;
+    f << "    \"complexity\": " << getComplexity() << "," << std::endl;
 
     saveMatrix(f, "u", m, uvw[0]);
     f << "," << std::endl;

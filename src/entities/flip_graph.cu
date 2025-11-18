@@ -18,135 +18,135 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2bestRank[getKey(n1, n2, n3)] = n1 * n2 * n3;
 
     n2knownRanks = {
-        {"222", 7}, {"223", 11}, {"224", 14}, {"225", 18}, {"226", 21}, {"227", 25}, {"228", 28}, {"229", 32},
-        {"233", 15}, {"234", 20}, {"235", 25}, {"236", 30}, {"237", 35}, {"238", 40}, {"239", 45},
-        {"244", 26}, {"245", 32}, {"246", 39}, {"247", 45}, {"248", 51}, {"249", 59},
-        {"255", 40}, {"256", 47}, {"257", 55}, {"258", 63}, {"259", 72},
-        {"266", 56}, {"267", 66}, {"268", 75}, {"269", 86},
-        {"277", 76}, {"278", 88}, {"279", 99},
-        {"288", 100},
-        {"333", 23}, {"334", 29}, {"335", 36}, {"336", 40}, {"337", 49}, {"338", 55}, {"339", 63},
-        {"344", 38}, {"345", 47}, {"346", 54}, {"347", 63}, {"348", 73}, {"349", 83},
-        {"355", 58}, {"356", 68}, {"357", 79}, {"358", 90}, {"359", 104},
-        {"366", 80}, {"367", 94}, {"368", 108}, {"369", 120},
-        {"377", 111}, {"378", 126}, {"379", 142},
-        {"388", 145},
-        {"444", 48}, {"445", 61}, {"446", 73}, {"447", 85}, {"448", 96}, {"449", 104},
-        {"455", 76}, {"456", 90}, {"457", 104}, {"458", 118}, {"459", 136},
-        {"466", 105}, {"467", 123}, {"468", 140}, {"469", 159},
-        {"477", 144}, {"478", 164}, {"479", 186},
-        {"488", 182},
-        {"555", 93}, {"556", 110}, {"557", 127}, {"558", 144}, {"559", 167},
-        {"566", 130}, {"567", 150}, {"568", 170}, {"569", 197},
-        {"577", 176}, {"578", 205}, {"579", 229},
-        {"588", 230},
-        {"666", 153}, {"667", 183}, {"668", 203}, {"669", 225},
-        {"677", 215}, {"678", 239}, {"679", 270},
-        {"688", 266},
-        {"777", 249}, {"778", 277}, {"779", 315},
-        {"788", 306},
-        {"888", 336}
+        {"2x2x2", 7}, {"2x2x3", 11}, {"2x2x4", 14}, {"2x2x5", 18}, {"2x2x6", 21}, {"2x2x7", 25}, {"2x2x8", 28}, {"2x2x9", 32},
+        {"2x3x3", 15}, {"2x3x4", 20}, {"2x3x5", 25}, {"2x3x6", 30}, {"2x3x7", 35}, {"2x3x8", 40}, {"2x3x9", 45},
+        {"2x4x4", 26}, {"2x4x5", 32}, {"2x4x6", 39}, {"2x4x7", 45}, {"2x4x8", 51}, {"2x4x9", 59},
+        {"2x5x5", 40}, {"2x5x6", 47}, {"2x5x7", 55}, {"2x5x8", 63}, {"2x5x9", 72},
+        {"2x6x6", 56}, {"2x6x7", 66}, {"2x6x8", 75}, {"2x6x9", 86},
+        {"2x7x7", 76}, {"2x7x8", 88}, {"2x7x9", 99},
+        {"2x8x8", 100},
+        {"3x3x3", 23}, {"3x3x4", 29}, {"3x3x5", 36}, {"3x3x6", 40}, {"3x3x7", 49}, {"3x3x8", 55}, {"3x3x9", 63},
+        {"3x4x4", 38}, {"3x4x5", 47}, {"3x4x6", 54}, {"3x4x7", 63}, {"3x4x8", 73}, {"3x4x9", 83},
+        {"3x5x5", 58}, {"3x5x6", 68}, {"3x5x7", 79}, {"3x5x8", 90}, {"3x5x9", 104},
+        {"3x6x6", 80}, {"3x6x7", 94}, {"3x6x8", 108}, {"3x6x9", 120},
+        {"3x7x7", 111}, {"3x7x8", 126}, {"3x7x9", 142},
+        {"3x8x8", 145},
+        {"4x4x4", 48}, {"4x4x5", 61}, {"4x4x6", 73}, {"4x4x7", 85}, {"4x4x8", 96}, {"4x4x9", 104},
+        {"4x5x5", 76}, {"4x5x6", 90}, {"4x5x7", 104}, {"4x5x8", 118}, {"4x5x9", 136},
+        {"4x6x6", 105}, {"4x6x7", 123}, {"4x6x8", 140}, {"4x6x9", 159},
+        {"4x7x7", 144}, {"4x7x8", 164}, {"4x7x9", 186},
+        {"4x8x8", 182},
+        {"5x5x5", 93}, {"5x5x6", 110}, {"5x5x7", 127}, {"5x5x8", 144}, {"5x5x9", 167},
+        {"5x6x6", 130}, {"5x6x7", 150}, {"5x6x8", 170}, {"5x6x9", 197},
+        {"5x7x7", 176}, {"5x7x8", 205}, {"5x7x9", 229},
+        {"5x8x8", 230},
+        {"6x6x6", 153}, {"6x6x7", 183}, {"6x6x8", 203}, {"6x6x9", 225},
+        {"6x7x7", 215}, {"6x7x8", 239}, {"6x7x9", 270},
+        {"6x8x8", 266},
+        {"7x7x7", 249}, {"7x7x8", 277}, {"7x7x9", 315},
+        {"7x8x8", 306},
+        {"8x8x8", 336}
     };
 
 #ifdef SCHEME_INTEGER
-    n2knownRanks["245"] = 33;
+    n2knownRanks["2x4x5"] = 33;
 
-    n2knownRanks["257"] = 57;
-    n2knownRanks["258"] = 65;
+    n2knownRanks["2x5x7"] = 57;
+    n2knownRanks["2x5x8"] = 65;
 
-    n2knownRanks["266"] = 57;
-    n2knownRanks["267"] = 68;
-    n2knownRanks["268"] = 77;
-    n2knownRanks["269"] = 86;
+    n2knownRanks["2x6x6"] = 57;
+    n2knownRanks["2x6x7"] = 68;
+    n2knownRanks["2x6x8"] = 77;
+    n2knownRanks["2x6x9"] = 86;
 
-    n2knownRanks["277"] = 77;
-    n2knownRanks["278"] = 90;
-    n2knownRanks["279"] = 102;
+    n2knownRanks["2x7x7"] = 77;
+    n2knownRanks["2x7x8"] = 90;
+    n2knownRanks["2x7x9"] = 102;
 
-    n2knownRanks["336"] = 44;
-    n2knownRanks["337"] = 51;
-    n2knownRanks["338"] = 58;
-    n2knownRanks["339"] = 65;
+    n2knownRanks["3x3x6"] = 44;
+    n2knownRanks["3x3x7"] = 51;
+    n2knownRanks["3x3x8"] = 58;
+    n2knownRanks["3x3x9"] = 65;
 
-    n2knownRanks["346"] = 57;
-    n2knownRanks["347"] = 66;
-    n2knownRanks["348"] = 74;
-    n2knownRanks["349"] = 85;
+    n2knownRanks["3x4x6"] = 57;
+    n2knownRanks["3x4x7"] = 66;
+    n2knownRanks["3x4x8"] = 74;
+    n2knownRanks["3x4x9"] = 85;
 
-    n2knownRanks["356"] = 70;
-    n2knownRanks["357"] = 83;
-    n2knownRanks["358"] = 94;
-    n2knownRanks["359"] = 105;
+    n2knownRanks["3x5x6"] = 70;
+    n2knownRanks["3x5x7"] = 83;
+    n2knownRanks["3x5x8"] = 94;
+    n2knownRanks["3x5x9"] = 105;
 
-    n2knownRanks["366"] = 85;
-    n2knownRanks["367"] = 100;
-    n2knownRanks["368"] = 113;
-    n2knownRanks["369"] = 127;
+    n2knownRanks["3x6x6"] = 85;
+    n2knownRanks["3x6x7"] = 100;
+    n2knownRanks["3x6x8"] = 113;
+    n2knownRanks["3x6x9"] = 127;
 
-    n2knownRanks["377"] = 117;
-    n2knownRanks["378"] = 132;
-    n2knownRanks["379"] = 149;
+    n2knownRanks["3x7x7"] = 117;
+    n2knownRanks["3x7x8"] = 132;
+    n2knownRanks["3x7x9"] = 149;
 
-    n2knownRanks["388"] = 148;
+    n2knownRanks["3x8x8"] = 148;
 
-    n2knownRanks["444"] = 49;
-    n2knownRanks["449"] = 110;
+    n2knownRanks["4x4x4"] = 49;
+    n2knownRanks["4x4x9"] = 110;
 
-    n2knownRanks["459"] = 137;
+    n2knownRanks["4x5x9"] = 137;
 
-    n2knownRanks["469"] = 162;
+    n2knownRanks["4x6x9"] = 162;
 
-    n2knownRanks["477"] = 148;
-    n2knownRanks["479"] = 189;
+    n2knownRanks["4x7x7"] = 148;
+    n2knownRanks["4x7x9"] = 189;
 
-    n2knownRanks["568"] = 176;
+    n2knownRanks["5x6x8"] = 176;
 
-    n2knownRanks["577"] = 184;
-    n2knownRanks["578"] = 207;
+    n2knownRanks["5x7x7"] = 184;
+    n2knownRanks["5x7x8"] = 207;
 
-    n2knownRanks["667"] = 185;
-    n2knownRanks["669"] = 225;
-    n2knownRanks["679"] = 270;
+    n2knownRanks["6x6x7"] = 185;
+    n2knownRanks["6x6x9"] = 225;
+    n2knownRanks["6x7x9"] = 270;
 
-    n2knownRanks["777"] = 261;
-    n2knownRanks["778"] = 292;
+    n2knownRanks["7x7x7"] = 261;
+    n2knownRanks["7x7x8"] = 292;
 #else
-    n2knownRanks["245"] = 33;
-    n2knownRanks["257"] = 57; // ?
-    n2knownRanks["258"] = 65; // ?
-    n2knownRanks["268"] = 77; // ?
-    n2knownRanks["277"] = 77; // ?
-    n2knownRanks["279"] = 101; // ?
+    n2knownRanks["2x4x5"] = 33;
+    n2knownRanks["2x5x7"] = 57; // ?
+    n2knownRanks["2x5x8"] = 65; // ?
+    n2knownRanks["2x6x8"] = 77; // ?
+    n2knownRanks["2x7x7"] = 77; // ?
+    n2knownRanks["2x7x9"] = 101; // ?
 
-    n2knownRanks["336"] = 42; // ?
-    n2knownRanks["338"] = 57; // ?
-    n2knownRanks["339"] = 64; // ?
+    n2knownRanks["3x3x6"] = 42; // ?
+    n2knownRanks["3x3x8"] = 57; // ?
+    n2knownRanks["3x3x9"] = 64; // ?
 
-    n2knownRanks["347"] = 64; // ?
-    n2knownRanks["348"] = 74; // ?
+    n2knownRanks["3x4x7"] = 64; // ?
+    n2knownRanks["3x4x8"] = 74; // ?
 
-    n2knownRanks["366"] = 84; // ?
-    n2knownRanks["367"] = 96; // ?
-    n2knownRanks["369"] = 122; // ?
+    n2knownRanks["3x6x6"] = 84; // ?
+    n2knownRanks["3x6x7"] = 96; // ?
+    n2knownRanks["3x6x9"] = 122; // ?
 
-    n2knownRanks["377"] = 113; // ?
-    n2knownRanks["378"] = 128; // ?
-    n2knownRanks["379"] = 147; // ?
+    n2knownRanks["3x7x7"] = 113; // ?
+    n2knownRanks["3x7x8"] = 128; // ?
+    n2knownRanks["3x7x9"] = 147; // ?
 
-    n2knownRanks["444"] = 47;
-    n2knownRanks["445"] = 60;
-    n2knownRanks["448"] = 94;
-    n2knownRanks["449"] = 107;
+    n2knownRanks["4x4x4"] = 47;
+    n2knownRanks["4x4x5"] = 60;
+    n2knownRanks["4x4x8"] = 94;
+    n2knownRanks["4x4x9"] = 107;
 
-    n2knownRanks["455"] = 73;
-    n2knownRanks["456"] = 89;
-    n2knownRanks["459"] = 134;
+    n2knownRanks["4x5x5"] = 73;
+    n2knownRanks["4x5x6"] = 89;
+    n2knownRanks["4x5x9"] = 134;
 
-    n2knownRanks["469"] = 160;
-    n2knownRanks["479"] = 189;
+    n2knownRanks["4x6x9"] = 160;
+    n2knownRanks["4x7x9"] = 189;
 
-    n2knownRanks["559"] = 166; // ?
-    n2knownRanks["578"] = 206; // ?
+    n2knownRanks["5x5x9"] = 166; // ?
+    n2knownRanks["5x7x8"] = 206; // ?
 #endif
 
     CUDA_CHECK(cudaMallocManaged(&schemes, schemesCount * sizeof(Scheme)));
@@ -280,9 +280,9 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
         }
     }
 
-    std::cout << "+-----------+-----------+--------+------+------+-------+------+------+-------------+" << std::endl;
-    std::cout << "|  elapsed  | iteration | run id | size | real | known | best | curr | flips count |" << std::endl;
-    std::cout << "+-----------+-----------+--------+------+------+-------+------+------+-------------+" << std::endl;
+    std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
+    std::cout << "|  elapsed  | iteration | run id |  size  |  real  | known | best | curr | flips count |" << std::endl;
+    std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
 
     std::sort(keys.begin(), keys.end());
 
@@ -296,8 +296,8 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
             std::cout << std::setw(9) << prettyTime(elapsed) << " | ";
             std::cout << std::setw(9) << iteration << " | ";
             std::cout << std::setw(6) << (indices[i] + 1) << " | ";
-            std::cout << std::setw(4) << key << " | ";
-            std::cout << " " << scheme.n[0] << scheme.n[1] << scheme.n[2] << " | ";
+            std::cout << std::setw(6) << key << " | ";
+            std::cout << std::setw(6) << getKey(scheme, false) << " | ";
             std::cout << std::setw(5) << n2knownRanks[key] << " | ";
             std::cout << std::setw(4) << bestRanks[indices[i]] << " | ";
             std::cout << std::setw(4) << scheme.m << " | ";
@@ -313,7 +313,7 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
             std::cout << std::endl;
         }
 
-        std::cout << "+-----------+-----------+--------+------+------+-------+------+------+-------------+" << std::endl;
+        std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
 
         int period = 1 + rand() % 10;
         for (size_t i = 0; i < indices.size(); i++)
@@ -342,12 +342,12 @@ std::string FlipGraph::getSavePath(const Scheme &scheme, int iteration, int runI
     std::stringstream ss;
 
     ss << path << "/";
-    ss << getKey(scheme);
+    ss << getKey(scheme, true);
     ss << "_m" << scheme.m;
     ss << "_c" << scheme.getComplexity();
     ss << "_iteration" << iteration;
     ss << "_run" << runId;
-    ss << "_" << scheme.n[0] << scheme.n[1] << scheme.n[2];
+    ss << "_" << getKey(scheme, false);
     ss << "_" << mod << ".json";
 
     return ss.str();

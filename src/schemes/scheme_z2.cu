@@ -1241,6 +1241,7 @@ void SchemeZ2::save(const std::string &path) {
     f << "    \"n\": [" << n[0] << ", " << n[1] << ", " << n[2] << "]," << std::endl;
     f << "    \"m\": " << m << "," << std::endl;
     f << "    \"z2\": true," << std::endl;
+    f << "    \"complexity\": " << getComplexity() << "," << std::endl;
 
     saveMatrix(f, "u", n[0], n[1], m, uvw[0]);
     f << "," << std::endl;
