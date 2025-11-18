@@ -1,8 +1,8 @@
 #include <iostream>
 #include <ctime>
 
-#include "arg_parser.cuh"
-#include "complexity_minimizer.cuh"
+#include "entities/arg_parser.cuh"
+#include "entities/complexity_minimizer.cuh"
 
 int main(int argc, char* argv[]) {
     ArgParser parser("flip_graph", "Find best complexity of the fast matrix multiplication scheme in parallel using CUDA");

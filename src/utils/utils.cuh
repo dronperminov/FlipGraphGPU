@@ -5,9 +5,9 @@
 #include <sstream>
 #include <vector>
 
-#include "config.cuh"
-#include "scheme_integer.cuh"
-#include "scheme_z2.cuh"
+#include "../config.cuh"
+#include "../schemes/scheme_integer.cuh"
+#include "../schemes/scheme_z2.cuh"
 
 #define CUDA_CHECK(call) \
     do { \

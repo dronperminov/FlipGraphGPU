@@ -1,14 +1,8 @@
 #include <iostream>
 #include <ctime>
 
-#include "arg_parser.cuh"
-#include "flip_graph.cuh"
-
-#ifdef SCHEME_INTEGER
-#pragma message("Building with Z field scheme")
-#else
-#pragma message("Building with Z2 field scheme")
-#endif
+#include "entities/arg_parser.cuh"
+#include "entities/flip_graph.cuh"
 
 int main(int argc, char* argv[]) {
     ArgParser parser("flip_graph", "Find fast matrix multiplication in parallel using CUDA");

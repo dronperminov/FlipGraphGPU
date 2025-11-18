@@ -51,10 +51,10 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
 #ifdef SCHEME_INTEGER
     n2knownRanks["245"] = 33;
     n2knownRanks["257"] = 57;
-    n2knownRanks["258"] = 66;
+    n2knownRanks["258"] = 65;
     n2knownRanks["266"] = 57;
-    n2knownRanks["267"] = 69;
-    n2knownRanks["268"] = 78;
+    n2knownRanks["267"] = 68;
+    n2knownRanks["268"] = 77;
     n2knownRanks["277"] = 77;
     n2knownRanks["278"] = 90;
     n2knownRanks["336"] = 44;
@@ -64,22 +64,22 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["347"] = 66;
     n2knownRanks["348"] = 74;
     n2knownRanks["356"] = 70;
-    n2knownRanks["357"] = 84;
+    n2knownRanks["357"] = 83;
     n2knownRanks["358"] = 94;
     n2knownRanks["366"] = 85;
-    n2knownRanks["367"] = 101;
+    n2knownRanks["367"] = 100;
     n2knownRanks["368"] = 114;
-    n2knownRanks["377"] = 119;
+    n2knownRanks["377"] = 117;
     n2knownRanks["378"] = 132;
     n2knownRanks["388"] = 148;
     n2knownRanks["444"] = 49;
     n2knownRanks["477"] = 148;
     n2knownRanks["568"] = 176;
-    n2knownRanks["577"] = 185;
-    n2knownRanks["578"] = 208;
+    n2knownRanks["577"] = 184;
+    n2knownRanks["578"] = 207;
     n2knownRanks["667"] = 185;
-    n2knownRanks["777"] = 281;
-    n2knownRanks["778"] = 302;
+    n2knownRanks["777"] = 261;
+    n2knownRanks["778"] = 292;
 #else
     n2knownRanks["444"] = 47;
     n2knownRanks["445"] = 60;

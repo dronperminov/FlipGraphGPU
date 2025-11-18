@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "config.cuh"
+#include "../config.cuh"
 
 const int MAX_PAIRS = MAX_RANK * (MAX_RANK - 1) / 2;
 

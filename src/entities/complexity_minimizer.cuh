@@ -7,11 +7,11 @@
 #include <numeric>
 #include <vector>
 
-#include "config.cuh"
-#include "random.cuh"
-#include "utils.cuh"
-#include "scheme_integer.cuh"
-#include "scheme_z2.cuh"
+#include "../config.cuh"
+#include "../utils/random.cuh"
+#include "../utils/utils.cuh"
+#include "../schemes/scheme_integer.cuh"
+#include "../schemes/scheme_z2.cuh"
 
 class ComplexityMinimizer {
     int schemesCount;

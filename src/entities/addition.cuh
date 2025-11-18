@@ -2,8 +2,8 @@
 
 #include <cstdint>
 #include <iostream>
-#include "config.cuh"
-#include "random.cuh"
+#include "../config.cuh"
+#include "../utils/random.cuh"
 
 struct Addition {
     int n;
