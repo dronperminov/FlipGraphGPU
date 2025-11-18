@@ -18,90 +18,138 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2bestRank[getKey(n1, n2, n3)] = n1 * n2 * n3;
 
     n2knownRanks = {
-        {"222", 7}, {"223", 11}, {"224", 14}, {"225", 18}, {"226", 21}, {"227", 25}, {"228", 28},
-        {"233", 15}, {"234", 20}, {"235", 25}, {"236", 30}, {"237", 35}, {"238", 40},
-        {"244", 26}, {"245", 32}, {"246", 39}, {"247", 45}, {"248", 51},
-        {"255", 40}, {"256", 47}, {"257", 55}, {"258", 63},
-        {"266", 56}, {"267", 66}, {"268", 75},
-        {"277", 76}, {"278", 88},
+        {"222", 7}, {"223", 11}, {"224", 14}, {"225", 18}, {"226", 21}, {"227", 25}, {"228", 28}, {"229", 32},
+        {"233", 15}, {"234", 20}, {"235", 25}, {"236", 30}, {"237", 35}, {"238", 40}, {"239", 45},
+        {"244", 26}, {"245", 32}, {"246", 39}, {"247", 45}, {"248", 51}, {"249", 59},
+        {"255", 40}, {"256", 47}, {"257", 55}, {"258", 63}, {"259", 72},
+        {"266", 56}, {"267", 66}, {"268", 75}, {"269", 86},
+        {"277", 76}, {"278", 88}, {"279", 99},
         {"288", 100},
-        {"333", 23}, {"334", 29}, {"335", 36}, {"336", 40}, {"337", 49}, {"338", 55},
-        {"344", 38}, {"345", 47}, {"346", 54}, {"347", 63}, {"348", 73},
-        {"355", 58}, {"356", 68}, {"357", 79}, {"358", 90},
-        {"366", 80}, {"367", 94}, {"368", 108},
-        {"377", 111}, {"378", 126},
+        {"333", 23}, {"334", 29}, {"335", 36}, {"336", 40}, {"337", 49}, {"338", 55}, {"339", 63},
+        {"344", 38}, {"345", 47}, {"346", 54}, {"347", 63}, {"348", 73}, {"349", 83},
+        {"355", 58}, {"356", 68}, {"357", 79}, {"358", 90}, {"359", 104},
+        {"366", 80}, {"367", 94}, {"368", 108}, {"369", 120},
+        {"377", 111}, {"378", 126}, {"379", 142},
         {"388", 145},
-        {"444", 48}, {"445", 61}, {"446", 73}, {"447", 85}, {"448", 96},
-        {"455", 76}, {"456", 90}, {"457", 104}, {"458", 118},
-        {"466", 105}, {"467", 123}, {"468", 140},
-        {"477", 144}, {"478", 164},
+        {"444", 48}, {"445", 61}, {"446", 73}, {"447", 85}, {"448", 96}, {"449", 104},
+        {"455", 76}, {"456", 90}, {"457", 104}, {"458", 118}, {"459", 136},
+        {"466", 105}, {"467", 123}, {"468", 140}, {"469", 159},
+        {"477", 144}, {"478", 164}, {"479", 186},
         {"488", 182},
-        {"555", 93}, {"556", 110}, {"557", 127}, {"558", 144},
-        {"566", 130}, {"567", 150}, {"568", 170},
-        {"577", 176}, {"578", 205},
+        {"555", 93}, {"556", 110}, {"557", 127}, {"558", 144}, {"559", 167},
+        {"566", 130}, {"567", 150}, {"568", 170}, {"569", 197},
+        {"577", 176}, {"578", 205}, {"579", 229},
         {"588", 230},
-        {"666", 153}, {"667", 183}, {"668", 203},
-        {"677", 215}, {"678", 239},
+        {"666", 153}, {"667", 183}, {"668", 203}, {"669", 225},
+        {"677", 215}, {"678", 239}, {"679", 270},
         {"688", 266},
-        {"777", 249}, {"778", 277},
+        {"777", 249}, {"778", 277}, {"779", 315},
         {"788", 306},
         {"888", 336}
     };
 
 #ifdef SCHEME_INTEGER
     n2knownRanks["245"] = 33;
+
     n2knownRanks["257"] = 57;
     n2knownRanks["258"] = 65;
+
     n2knownRanks["266"] = 57;
     n2knownRanks["267"] = 68;
     n2knownRanks["268"] = 77;
+    n2knownRanks["269"] = 86;
+
     n2knownRanks["277"] = 77;
     n2knownRanks["278"] = 90;
+    n2knownRanks["279"] = 102;
+
     n2knownRanks["336"] = 44;
     n2knownRanks["337"] = 51;
     n2knownRanks["338"] = 58;
+    n2knownRanks["339"] = 65;
+
     n2knownRanks["346"] = 57;
     n2knownRanks["347"] = 66;
     n2knownRanks["348"] = 74;
+    n2knownRanks["349"] = 85;
+
     n2knownRanks["356"] = 70;
     n2knownRanks["357"] = 83;
     n2knownRanks["358"] = 94;
+    n2knownRanks["359"] = 105;
+
     n2knownRanks["366"] = 85;
     n2knownRanks["367"] = 100;
-    n2knownRanks["368"] = 114;
+    n2knownRanks["368"] = 113;
+    n2knownRanks["369"] = 127;
+
     n2knownRanks["377"] = 117;
     n2knownRanks["378"] = 132;
+    n2knownRanks["379"] = 149;
+
     n2knownRanks["388"] = 148;
+
     n2knownRanks["444"] = 49;
+    n2knownRanks["449"] = 110;
+
+    n2knownRanks["459"] = 137;
+
+    n2knownRanks["469"] = 162;
+
     n2knownRanks["477"] = 148;
+    n2knownRanks["479"] = 189;
+
+    n2knownRanks["559"] = 168;
+
     n2knownRanks["568"] = 176;
+    n2knownRanks["569"] = 200;
+
     n2knownRanks["577"] = 184;
     n2knownRanks["578"] = 207;
+
     n2knownRanks["667"] = 185;
+    n2knownRanks["669"] = 225;
+    n2knownRanks["679"] = 270;
+
     n2knownRanks["777"] = 261;
     n2knownRanks["778"] = 292;
 #else
-    n2knownRanks["444"] = 47;
-    n2knownRanks["445"] = 60;
-    n2knownRanks["455"] = 73;
-    n2knownRanks["456"] = 89;
-    n2knownRanks["448"] = 94;
-
-    // maybe
     n2knownRanks["245"] = 33;
     n2knownRanks["257"] = 57; // ?
-    n2knownRanks["258"] = 66; // ?
-    n2knownRanks["268"] = 78; // ?
+    n2knownRanks["258"] = 65; // ?
+    n2knownRanks["268"] = 77; // ?
     n2knownRanks["277"] = 77; // ?
+    n2knownRanks["279"] = 101; // ?
+
     n2knownRanks["336"] = 42; // ?
-    n2knownRanks["338"] = 58; // ?
+    n2knownRanks["338"] = 57; // ?
+    n2knownRanks["339"] = 64; // ?
+
     n2knownRanks["347"] = 64; // ?
     n2knownRanks["348"] = 74; // ?
+
     n2knownRanks["366"] = 84; // ?
-    n2knownRanks["367"] = 98; // ?
-    n2knownRanks["377"] = 116; // ?
+    n2knownRanks["367"] = 96; // ?
+    n2knownRanks["369"] = 122; // ?
+
+    n2knownRanks["377"] = 113; // ?
     n2knownRanks["378"] = 128; // ?
-    n2knownRanks["578"] = 207; // ?
+    n2knownRanks["379"] = 147; // ?
+
+    n2knownRanks["444"] = 47;
+    n2knownRanks["445"] = 60;
+    n2knownRanks["448"] = 94;
+    n2knownRanks["449"] = 107;
+
+    n2knownRanks["455"] = 73;
+    n2knownRanks["456"] = 89;
+    n2knownRanks["459"] = 134;
+
+    n2knownRanks["469"] = 160;
+    n2knownRanks["479"] = 189;
+
+    n2knownRanks["559"] = 166; // ?
+    n2knownRanks["578"] = 206; // ?
 #endif
 
     CUDA_CHECK(cudaMallocManaged(&schemes, schemesCount * sizeof(Scheme)));
@@ -151,13 +199,13 @@ void FlipGraph::optimize() {
 }
 
 void FlipGraph::projectExtend() {
-    projectExtendKernel<<<numBlocks, blockSize>>>(schemes, schemesCount, states, probabilities.extend, probabilities.project);
+    projectExtendKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, schemesCount, states, probabilities.extend, probabilities.project);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-void FlipGraph::updateRanks(int iteration) {
+void FlipGraph::updateRanks(int iteration, bool save) {
     std::vector<std::string> keys(schemesCount);
     std::unordered_map<std::string, int> n2bestIndex;
 
@@ -175,10 +223,12 @@ void FlipGraph::updateRanks(int iteration) {
     for (int i = 0; i < schemesCount; i++)
         bestRanks[i] = n2bestRank[keys[i]];
 
-    for (auto pair : n2bestIndex) {
-        std::string savePath = getSavePath(schemes[pair.second], iteration, pair.second);
-        schemes[pair.second].save(savePath);
-        std::cout << "Best rank of " << pair.first << " was improved to " << bestRanks[pair.second] << " (known: " << n2knownRanks[pair.first] << ")! Scheme saved to \"" << savePath << "\"" << std::endl;
+    if (save) {
+        for (auto pair : n2bestIndex) {
+            std::string savePath = getSavePath(schemes[pair.second], iteration, pair.second);
+            schemes[pair.second].save(savePath);
+            std::cout << "Best rank of " << pair.first << " was improved to " << bestRanks[pair.second] << " (known: " << n2knownRanks[pair.first] << ")! Scheme saved to \"" << savePath << "\"" << std::endl;
+        }
     }
 
     if (n2bestIndex.size())
@@ -187,7 +237,7 @@ void FlipGraph::updateRanks(int iteration) {
 
 void FlipGraph::run() {
     initialize();
-    updateRanks(0);
+    updateRanks(0, false);
 
     auto startTime = std::chrono::high_resolution_clock::now();
     std::vector<double> elapsedTimes;
@@ -203,7 +253,7 @@ void FlipGraph::run() {
 
         if (probabilities.extend > 0 || probabilities.project > 0) {
             projectExtend();
-            updateRanks(iteration);
+            updateRanks(iteration, true);
         }
     }
 }
@@ -424,7 +474,7 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
         printf("invalid (%d) scheme (random walk)\n", idx);
 }
 
-__global__ void projectExtendKernel(Scheme *schemes, int schemesCount, curandState *states, double extendProbability, double projectProbability) {
+__global__ void projectExtendKernel(Scheme *schemes, Scheme *schemesBest, int schemesCount, curandState *states, double extendProbability, double projectProbability) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= schemesCount)
@@ -433,9 +483,13 @@ __global__ void projectExtendKernel(Scheme *schemes, int schemesCount, curandSta
     Scheme &scheme = schemes[idx];
     curandState &state = states[idx];
 
-    double d1 = double(scheme.n[0] - MIN_PROJECT_N1) / (MAX_EXTENSION_N1 - MIN_PROJECT_N1);
-    double d2 = double(scheme.n[1] - MIN_PROJECT_N2) / (MAX_EXTENSION_N2 - MIN_PROJECT_N2);
-    double d3 = double(scheme.n[2] - MIN_PROJECT_N3) / (MAX_EXTENSION_N3 - MIN_PROJECT_N3);
+    int n1 = min(max(scheme.n[0], MIN_PROJECT_N1), MAX_EXTENSION_N1);
+    int n2 = min(max(scheme.n[1], MIN_PROJECT_N2), MAX_EXTENSION_N2);
+    int n3 = min(max(scheme.n[2], MIN_PROJECT_N3), MAX_EXTENSION_N3);
+
+    double d1 = double(n1 - MIN_PROJECT_N1) / (MAX_EXTENSION_N1 - MIN_PROJECT_N1);
+    double d2 = double(n2 - MIN_PROJECT_N2) / (MAX_EXTENSION_N2 - MIN_PROJECT_N2);
+    double d3 = double(n3 - MIN_PROJECT_N3) / (MAX_EXTENSION_N3 - MIN_PROJECT_N3);
     double d = (d1 + d2 + d3) / 3.0;
 
     if (curand_uniform(&state) < extendProbability * (1 - d)) {
@@ -449,6 +503,13 @@ __global__ void projectExtendKernel(Scheme *schemes, int schemesCount, curandSta
 
     if (curand_uniform(&state) < projectProbability * d)
         scheme.tryProject(state);
+
+    if (curand_uniform(&state) < 0.5) {
+        scheme.swapSize(state);
+    }
+
+    int index = curand(&state) % schemesCount;
+    scheme.tryMerge(schemesBest[index], state);
 
     if (!scheme.validate())
         printf("invalid (%d) scheme (project extend)\n", idx);

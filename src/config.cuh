@@ -16,12 +16,12 @@ const int MIN_PROJECT_N2 = 2;
 const int MIN_PROJECT_N3 = 3;
 
 // extension limit
-const int MAX_EXTENSION_N1 = 6;
-const int MAX_EXTENSION_N2 = 6;
-const int MAX_EXTENSION_N3 = 7;
+const int MAX_EXTENSION_N1 = 9;
+const int MAX_EXTENSION_N2 = 9;
+const int MAX_EXTENSION_N3 = 9;
 
 // sandwiching limit
-const int MAX_SANDWICHING_N = std::max(std::max(MAX_EXTENSION_N1, MAX_EXTENSION_N2), MAX_EXTENSION_N3);
+const int MAX_SANDWICHING_N = 9;
 const int MAX_SANDWICHING_ELEMENTS = MAX_SANDWICHING_N * MAX_SANDWICHING_N;
 
 #ifdef SCHEME_INTEGER
