@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
     parser.add("--sandwiching-probability", ArgType::Real, "REAL", "sandwiching edge probability (divided by max iterations)", "0.0");
     parser.add("--basis-probability", ArgType::Real, "REAL", "basis edge probability (divided by max iterations)", "0.0");
     parser.add("--resize-probability", ArgType::Real, "REAL", "project/extend edge probability", "0.2");
+    parser.add("--log-period", ArgType::Natural, "INT", "period of report printing", "0");
     parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
 
     if (!parser.parse(argc, argv))
@@ -33,6 +34,7 @@ int main(int argc, char* argv[]) {
     std::string path = parser.get("--path");
     std::string inputPath = parser.get("--input-path");
     int blockSize = std::stoi(parser.get("--block-size"));
+    int logPeriod = std::stoi(parser.get("--log-period"));
     int seed = std::stoi(parser.get("--seed"));
 
     FlipGraphProbabilities probabilities;
@@ -67,6 +69,7 @@ int main(int argc, char* argv[]) {
     std::cout << "  - sandwiching: " << probabilities.sandwiching << std::endl;
     std::cout << "  - basis: " << probabilities.basis << std::endl;
     std::cout << "  - resize: " << probabilities.resize << std::endl;
+    std::cout << "- log period: " << logPeriod << std::endl;
     std::cout << "- seed: " << seed << std::endl;
 
     FlipGraph flipGraph(n1, n2, n3, schemesCount, blockSize, maxIterations, path, probabilities, seed);
@@ -84,7 +87,7 @@ int main(int argc, char* argv[]) {
     }
 
     try {
-        flipGraph.run();
+        flipGraph.run(logPeriod);
         std::cout << "Success!" << std::endl;
     }
     catch (std::runtime_error e) {

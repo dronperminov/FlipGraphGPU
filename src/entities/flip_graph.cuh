@@ -54,7 +54,7 @@ public:
 
     bool initializeFromFile(std::istream &f);
     void initializeNaive();
-    void run();
+    void run(int logPeriod);
 
     ~FlipGraph();
 private:
@@ -62,7 +62,7 @@ private:
     void randomWalk();
     void resize();
     void updateRanks(int iteration, bool save);
-    void report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes, int count = 3);
+    void report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes, int logPeriod, int count = 3);
 
     bool compareKeys(const Scheme &s1, const Scheme &s2) const;
 
