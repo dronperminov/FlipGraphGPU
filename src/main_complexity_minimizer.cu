@@ -10,7 +10,7 @@ int main(int argc, char* argv[]) {
     parser.add("--schemes", ArgType::Natural, "INT", "number of schemes", "1024");
     parser.add("--max-iterations", ArgType::Natural, "INT", "number of flips per iterations", "10000");
     parser.add("--path", ArgType::String, "PATH", "path to save schemes", "schemes");
-    parser.add("--input-path", ArgType::String, "PATH", "path to init scheme", "");
+    parser.add("--input-path", ArgType::String, "PATH", "path to init scheme(s)", "");
     parser.add("--block-size", ArgType::Natural, "INT", "number of cuda threads", "32");
     parser.add("--target-complexity", ArgType::Natural, "INT", "target complexity", "0");
     parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
@@ -29,19 +29,13 @@ int main(int argc, char* argv[]) {
     if (seed == 0)
         seed = time(0);
 
-    Scheme scheme;
-
     std::ifstream f(inputPath);
-    bool result = scheme.read(f);
-    f.close();
-
-    if (!result)
+    if (!f) {
+        std::cout << "Unable to open file \"" << inputPath << "\"" << std::endl;
         return -1;
+    }
 
     std::cout << "Start complexity minimization algorithm" << std::endl;
-    std::cout << "- scheme size: " << scheme.n[0] << scheme.n[1] << scheme.n[2] << std::endl;
-    std::cout << "- scheme rank: " << scheme.m << std::endl;
-    std::cout << "- scheme complexity: " << scheme.getComplexity() << std::endl;
     std::cout << "- schemes count: " << schemesCount << std::endl;
     std::cout << "- max iterations: " << maxIterations << std::endl;
     std::cout << "- path: " << path << std::endl;
@@ -51,8 +45,16 @@ int main(int argc, char* argv[]) {
 
     ComplexityMinimizer minimizer(schemesCount, blockSize, maxIterations, path, seed);
 
+    bool result = minimizer.read(f);
+    f.close();
+
+    if (!result) {
+        printf("Read invalid scheme\n");
+        return -1;
+    }
+
     try {
-        minimizer.minimize(scheme, targetComplexity);
+        minimizer.minimize(targetComplexity);
         std::cout << "Success!" << std::endl;
     }
     catch (std::runtime_error e) {

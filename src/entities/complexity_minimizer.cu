@@ -20,8 +20,22 @@ ComplexityMinimizer::ComplexityMinimizer(int schemesCount, int blockSize, int ma
     CUDA_CHECK(cudaMallocManaged(&states, schemesCount * sizeof(curandState)));
 }
 
-void ComplexityMinimizer::minimize(const Scheme &scheme, int targetComplexity) {
-    initialize(scheme);
+bool ComplexityMinimizer::read(std::istream &f) {
+    int n1, n2, n3, m;
+    f >> n1 >> n2 >> n3 >> m >> initialCount;
+
+    std::cout << "Start reading " << initialCount << " schemes (" << n1 << "x" << n2 << "x" << n3 << ": " << m << ")" << std::endl;
+
+    for (int i = 0; i < initialCount; i++)
+        if (!schemes[i].read(f, n1, n2, n3, m, false))
+            return false;
+
+    std::cout << "Successfully read " << initialCount << " schemes" << std::endl;
+    return true;
+}
+
+void ComplexityMinimizer::minimize(int targetComplexity) {
+    initialize();
 
     auto startTime = std::chrono::high_resolution_clock::now();
     std::vector<double> elapsedTimes;
@@ -37,11 +51,13 @@ void ComplexityMinimizer::minimize(const Scheme &scheme, int targetComplexity) {
     }
 }
 
-void ComplexityMinimizer::initialize(const Scheme &scheme) {
-    bestComplexity = scheme.getComplexity();
-    scheme.copyTo(schemes[0]);
+void ComplexityMinimizer::initialize() {
+    bestComplexity = schemes[0].getComplexity();
 
-    initializeKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestComplexities, states, schemesCount, bestComplexity, seed);
+    for (int i = 1; i < initialCount; i++)
+        bestComplexity = std::min(bestComplexity,schemes[i].getComplexity());
+
+    initializeKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestComplexities, states, schemesCount, initialCount, bestComplexity, seed);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -139,13 +155,13 @@ ComplexityMinimizer::~ComplexityMinimizer() {
     }
 }
 
-__global__ void initializeKernel(Scheme *schemes, Scheme *schemesBest, int *bestComplexities, curandState *states, int schemesCount, int complexity, int seed) {
+__global__ void initializeKernel(Scheme *schemes, Scheme *schemesBest, int *bestComplexities, curandState *states, int schemesCount, int initialCount, int complexity, int seed) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= schemesCount)
         return;
 
-    if (idx > 0)
-        schemes[0].copyTo(schemes[idx]);
+    if (idx >= initialCount)
+        schemes[idx % initialCount].copyTo(schemes[idx]);
 
     schemes[idx].copyTo(schemesBest[idx]);
     bestComplexities[idx] = complexity;

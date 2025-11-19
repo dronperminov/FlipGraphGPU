@@ -22,8 +22,9 @@ struct SchemeInteger {
 
     __device__ __host__ bool validate() const;
     __device__ __host__ void initializeNaive(int n1, int n2, int n3);
-    __device__ __host__ void copyTo(SchemeInteger &target) const;
-    __host__ bool read(std::istream &is);
+    __device__ __host__ void copyTo(SchemeInteger &target, bool withFlips = true) const;
+    __host__ bool read(std::istream &is, bool checkValidity = true);
+    __host__ bool read(std::istream &is, int n1, int n2, int n3, int m, bool checkValidity = true);
 
     __device__ __host__ int getComplexity() const;
 

@@ -68,11 +68,11 @@ __device__ __host__ void SchemeZ2::copyTo(SchemeZ2 &target) const {
     target.initFlips();
 }
 
-__host__ bool SchemeZ2::read(std::istream &is) {
+__host__ bool SchemeZ2::read(std::istream &is, bool checkValidity) {
     is >> n[0] >> n[1] >> n[2] >> m;
 
     if (n[0] * n[1] > MAX_MATRIX_ELEMENTS || n[1] * n[2] > MAX_MATRIX_ELEMENTS || n[2] * n[0] > MAX_MATRIX_ELEMENTS || m > MAX_RANK) {
-        printf("invalid scheme sizes (%d, %d, %d, %d)\n", n[0], n[1], n[2], m);
+        printf("SchemeZ2::read(is): invalid scheme sizes (%d, %d, %d, %d)\n", n[0], n[1], n[2], m);
         return false;
     }
 
@@ -84,7 +84,29 @@ __host__ bool SchemeZ2::read(std::istream &is) {
     }
 
     initFlips();
-    return true;
+    return !checkValidity || validate();
+}
+
+__host__ bool SchemeZ2::read(std::istream &is, int n1, int n2, int n3, int m, bool checkValidity) {
+    if (n1 * n2 > MAX_MATRIX_ELEMENTS || n2 * n3 > MAX_MATRIX_ELEMENTS || n3 * n1 > MAX_MATRIX_ELEMENTS || m > MAX_RANK) {
+        printf("SchemeZ2::read(is, n1, n2, n3, m): invalid scheme sizes (%d, %d, %d, %d)\n", n1, n2, n3, m);
+        return false;
+    }
+
+    this->n[0] = n1;
+    this->n[1] = n2;
+    this->n[2] = n3;
+    this->m = m;
+
+    for (int i = 0; i < 3; i++) {
+        nn[i] = n[i] * n[(i + 1) % 3];
+
+        for (int index = 0; index < m; index++)
+            is >> uvw[i][index];
+    }
+
+    initFlips();
+    return !checkValidity || validate();
 }
 
 __device__ __host__ int SchemeZ2::getComplexity() const {
