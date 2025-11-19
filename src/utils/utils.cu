@@ -2,7 +2,9 @@
 
 std::string getKey(int n1, int n2, int n3, bool sorted) {
     std::vector<int> n = {n1, n2, n3};
-    std::sort(n.begin(), n.end());
+
+    if (sorted)
+        std::sort(n.begin(), n.end());
 
     std::stringstream ss;
     ss << n[0] << "x" << n[1] << "x" << n[2];

@@ -447,6 +447,7 @@ __device__ __host__ void SchemeInteger::project(int p, int q) {
         nn[i] = n[i] * n[(i + 1) % 3];
 
     removeZeroes();
+    fixSigns();
     initFlips();
 }
 
@@ -722,6 +723,7 @@ __device__ __host__ void SchemeInteger::swapSize(int p1, int p2) {
         nn[i] = nNew[i] * nNew[(i + 1) % 3];
     }
 
+    fixSigns();
     initFlips();
 }
 
