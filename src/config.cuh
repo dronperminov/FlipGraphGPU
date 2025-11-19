@@ -7,7 +7,7 @@
 
 typedef uint64_t T;
 
-const int MAX_RANK = 270;
+const int MAX_RANK = 350;
 const int MAX_MATRIX_ELEMENTS = std::min(int(sizeof(T) * 8), 64);
 
 // FlipSet capacity (for 16 elements - 112, 32 elements - 448, 64 elements - 1792)

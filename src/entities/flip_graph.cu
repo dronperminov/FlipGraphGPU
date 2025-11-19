@@ -252,7 +252,7 @@ void FlipGraph::updateRanks(int iteration, bool save) {
     }
 }
 
-void FlipGraph::run() {
+void FlipGraph::run(int logPeriod) {
     initialize();
 
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -265,7 +265,7 @@ void FlipGraph::run() {
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
         elapsedTimes.push_back(duration.count() / 1000.0);
 
-        report(startTime, iteration + 1, elapsedTimes);
+        report(startTime, iteration + 1, elapsedTimes, logPeriod);
 
         t1 = std::chrono::high_resolution_clock::now();
 
@@ -276,7 +276,7 @@ void FlipGraph::run() {
     }
 }
 
-void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes, int count) {
+void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes, int logPeriod, int count) {
     double lastTime = elapsedTimes[elapsedTimes.size() - 1];
     double minTime = *std::min_element(elapsedTimes.begin(), elapsedTimes.end());
     double maxTime = *std::max_element(elapsedTimes.begin(), elapsedTimes.end());
@@ -301,51 +301,53 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
         }
     }
 
-    std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
-    std::cout << "|  elapsed  | iteration | run id |  size  |  real  | known | best | curr | flips count |" << std::endl;
-    std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
-
-    std::sort(keys.begin(), keys.end(), [n2indices, this](std::string &s1, std::string &s2){
-        return compareKeys(schemes[n2indices.at(s1)[0]], schemes[n2indices.at(s2)[0]]);
-    });
-
-    for (auto key : keys) {
-        const std::vector<int> &indices = n2indices[key];
-
-        for (int i = 0; i < count && i < indices.size(); i++) {
-            Scheme &scheme = schemes[indices[i]];
-
-            std::cout << "| ";
-            std::cout << std::setw(9) << prettyTime(elapsed) << " | ";
-            std::cout << std::setw(9) << iteration << " | ";
-            std::cout << std::setw(6) << (indices[i] + 1) << " | ";
-            std::cout << std::setw(6) << key << " | ";
-            std::cout << std::setw(6) << getKey(scheme, false) << " | ";
-            std::cout << std::setw(5) << n2knownRanks[key] << " | ";
-            std::cout << std::setw(4) << bestRanks[indices[i]] << " | ";
-            std::cout << std::setw(4) << scheme.m << " | ";
-            std::cout << std::setw(11) << prettyInt(flips[indices[i]]) << " |";
-
-            if (i == 0) {
-                std::cout << " total: " << indices.size();
-
-                if (bestRanks[indices[0]] <= n2knownRanks[key])
-                    std::cout << ", " << (bestRanks[indices[0]] == n2knownRanks[key] ? "equal" : "BETTER!!!");
-            }
-
-            std::cout << std::endl;
-        }
-
+    if (logPeriod == 0 || iteration % logPeriod == 0) {
+        std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
+        std::cout << "|  elapsed  | iteration | run id |  size  |  real  | known | best | curr | flips count |" << std::endl;
         std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
 
-        int period = 1 + rand() % 10;
-        for (size_t i = 0; i < indices.size(); i++)
-            if (i % (iteration % period + 1) == 0)
-                schemesBest[indices[0]].copyTo(schemes[indices[i]]);
-    }
+        std::sort(keys.begin(), keys.end(), [n2indices, this](std::string &s1, std::string &s2){
+            return compareKeys(schemes[n2indices.at(s1)[0]], schemes[n2indices.at(s2)[0]]);
+        });
 
-    std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
-    std::cout << std::endl;
+        for (auto key : keys) {
+            const std::vector<int> &indices = n2indices[key];
+
+            for (int i = 0; i < count && i < indices.size(); i++) {
+                Scheme &scheme = schemes[indices[i]];
+
+                std::cout << "| ";
+                std::cout << std::setw(9) << prettyTime(elapsed) << " | ";
+                std::cout << std::setw(9) << iteration << " | ";
+                std::cout << std::setw(6) << (indices[i] + 1) << " | ";
+                std::cout << std::setw(6) << key << " | ";
+                std::cout << std::setw(6) << getKey(scheme, false) << " | ";
+                std::cout << std::setw(5) << n2knownRanks[key] << " | ";
+                std::cout << std::setw(4) << bestRanks[indices[i]] << " | ";
+                std::cout << std::setw(4) << scheme.m << " | ";
+                std::cout << std::setw(11) << prettyInt(flips[indices[i]]) << " |";
+
+                if (i == 0) {
+                    std::cout << " total: " << indices.size();
+
+                    if (bestRanks[indices[0]] <= n2knownRanks[key])
+                        std::cout << ", " << (bestRanks[indices[0]] == n2knownRanks[key] ? "equal" : "BETTER!!!");
+                }
+
+                std::cout << std::endl;
+            }
+
+            std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
+
+            int period = 1 + rand() % 10;
+            for (size_t i = 0; i < indices.size(); i++)
+                if (i % (iteration % period + 1) == 0)
+                    schemesBest[indices[0]].copyTo(schemes[indices[i]]);
+        }
+
+        std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
+        std::cout << std::endl;
+    }
 }
 
 bool FlipGraph::compareKeys(const Scheme &s1, const Scheme &s2) const {
