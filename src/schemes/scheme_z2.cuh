@@ -43,9 +43,9 @@ struct SchemeZ2 {
     __device__ bool tryExpand(int count, curandState &state);
     __device__ bool tryReduce();
     __device__ bool tryReduceGauss(curandState &state);
-    __device__ bool tryProject(curandState &state, int p, int minN);
-    __device__ bool tryExtend(curandState &state, int p, int maxN);
-    __device__ bool tryProduct(curandState &state, int p, int maxN);
+    __device__ bool tryProject(curandState &state, int minN = MIN_PROJECT_N);
+    __device__ bool tryExtend(curandState &state, int maxN = MAX_EXTENSION_N);
+    __device__ bool tryProduct(curandState &state, int maxN = MAX_EXTENSION_N);
     __device__ bool tryMerge(const SchemeZ2 &scheme, curandState &state);
     __device__ void sandwiching(curandState &state);
     __device__ void swapBasis(curandState &state);

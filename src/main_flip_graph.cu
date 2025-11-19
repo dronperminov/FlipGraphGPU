@@ -15,10 +15,10 @@ int main(int argc, char* argv[]) {
     parser.add("--path", ArgType::String, "PATH", "path to save schemes", "schemes");
     parser.add("--input-path", ArgType::String, "PATH", "path to init schemes", "null");
     parser.add("--block-size", ArgType::Natural, "INT", "number of cuda threads", "32");
-    parser.add("--expand-probability", ArgType::Real, "REAL", "expand edge probability (divided by max iterations)", "0.1");
-    parser.add("--reduce-probability", ArgType::Real, "REAL", "reduce edge probability (divided by max iterations)", "1");
-    parser.add("--sandwiching-probability", ArgType::Real, "REAL", "sandwiching edge probability (divided by max iterations)", "0.1");
-    parser.add("--basis-probability", ArgType::Real, "REAL", "basis edge probability (divided by max iterations)", "0.1");
+    parser.add("--expand-probability", ArgType::Real, "REAL", "expand edge probability (divided by max iterations)", "0.01");
+    parser.add("--reduce-probability", ArgType::Real, "REAL", "reduce edge probability (divided by max iterations)", "0.0");
+    parser.add("--sandwiching-probability", ArgType::Real, "REAL", "sandwiching edge probability (divided by max iterations)", "0.0");
+    parser.add("--basis-probability", ArgType::Real, "REAL", "basis edge probability (divided by max iterations)", "0.0");
     parser.add("--resize-probability", ArgType::Real, "REAL", "project/extend edge probability", "0.2");
     parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
 

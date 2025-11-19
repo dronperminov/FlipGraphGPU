@@ -37,9 +37,9 @@ struct SchemeInteger {
     __device__ bool trySplitExisted(curandState &state);
     __device__ bool tryExpand(int count, curandState &state);
     __device__ __host__ bool tryReduce();
-    __device__ bool tryProject(curandState &state, int p, int minN = MIN_PROJECT_N);
-    __device__ bool tryExtend(curandState &state, int p, int maxN = MAX_EXTENSION_N);
-    __device__ bool tryProduct(curandState &state, int p, int maxN = MAX_EXTENSION_N);
+    __device__ bool tryProject(curandState &state, int minN = MIN_PROJECT_N);
+    __device__ bool tryExtend(curandState &state, int maxN = MAX_EXTENSION_N);
+    __device__ bool tryProduct(curandState &state, int maxN = MAX_EXTENSION_N);
     __device__ bool tryMerge(const SchemeInteger &scheme, curandState &state);
     __device__ void sandwiching(curandState &state);
     __device__ void swapBasis(curandState &state);
