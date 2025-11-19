@@ -3,8 +3,6 @@
 #include <cstdint>
 #include "../config.cuh"
 
-const int MAX_PAIRS = MAX_RANK * (MAX_RANK - 1) / 2;
-
 struct FlipSet {
     size_t size;
     uint32_t pairs[MAX_PAIRS];

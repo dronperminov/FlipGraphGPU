@@ -21,3 +21,4 @@
 std::string getKey(int n1, int n2, int n3, bool sorted = true, bool withZeros = false);
 std::string getKey(const Scheme &scheme, bool sorted = true, bool withZeros = false);
 std::string prettyTime(double elapsed);
+std::string prettyInt(int value);

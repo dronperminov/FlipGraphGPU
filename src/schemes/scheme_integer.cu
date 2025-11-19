@@ -951,10 +951,19 @@ __device__ __host__ bool SchemeInteger::tryReduce() {
     return false;
 }
 
-__device__ bool SchemeInteger::tryProject(curandState &state, int p, int minN) {
-    if (!isValidProject(p, minN))
+__device__ bool SchemeInteger::tryProject(curandState &state, int minN) {
+    int indices[3];
+    int size = 0;
+
+    #pragma unroll
+    for (int i = 0; i < 3; i++)
+        if (isValidProject(i, minN))
+            indices[size++] = i;
+
+    if (!size)
         return false;
 
+    int p = indices[curand(&state) % size];
     int q = curand(&state) % n[p];
     project(p, q);
 
@@ -964,10 +973,19 @@ __device__ bool SchemeInteger::tryProject(curandState &state, int p, int minN) {
     return true;
 }
 
-__device__ bool SchemeInteger::tryExtend(curandState &state, int p, int maxN) {
-    if (!isValidExtension(p, maxN))
+__device__ bool SchemeInteger::tryExtend(curandState &state, int maxN) {
+    int indices[3];
+    int size = 0;
+
+    #pragma unroll
+    for (int i = 0; i < 3; i++)
+        if (isValidExtension(i, maxN))
+            indices[size++] = i;
+
+    if (!size)
         return false;
 
+    int p = indices[curand(&state) % size];
     extend(p);
 
     while (tryReduce())
@@ -976,10 +994,19 @@ __device__ bool SchemeInteger::tryExtend(curandState &state, int p, int maxN) {
     return true;
 }
 
-__device__ bool SchemeInteger::tryProduct(curandState &state, int p, int maxN) {
-    if (!isValidProduct(p, maxN))
+__device__ bool SchemeInteger::tryProduct(curandState &state, int maxN) {
+    int indices[3];
+    int size = 0;
+
+    #pragma unroll
+    for (int i = 0; i < 3; i++)
+        if (isValidProduct(i, maxN))
+            indices[size++] = i;
+
+    if (!size)
         return false;
 
+    int p = indices[curand(&state) % size];
     product(p);
     return true;
 }

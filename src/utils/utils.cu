@@ -46,3 +46,16 @@ std::string prettyTime(double elapsed) {
 
     return ss.str();
 }
+
+std::string prettyInt(int value) {
+    std::stringstream ss;
+
+    if (value < 1000)
+        ss << value;
+    else if (value < 1000000)
+        ss << std::setprecision(2) << std::fixed << (value / 1000.0) << "K";
+    else
+        ss << std::setprecision(2) << std::fixed << (value / 1000000.0) << "M";
+
+    return ss.str();
+}
