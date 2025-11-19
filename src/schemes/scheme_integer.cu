@@ -63,7 +63,7 @@ __device__ __host__ void SchemeInteger::initializeNaive(int n1, int n2, int n3) 
     initFlips();
 }
 
-__device__ __host__ void SchemeInteger::copyTo(SchemeInteger &target) const {
+__device__ __host__ void SchemeInteger::copyTo(SchemeInteger &target, bool withFlips) const {
     target.m = m;
 
     for (int i = 0; i < 3; i++) {
@@ -74,7 +74,8 @@ __device__ __host__ void SchemeInteger::copyTo(SchemeInteger &target) const {
             target.uvw[i][index] = uvw[i][index];
     }
 
-    target.initFlips();
+    if (withFlips)
+        target.initFlips();
 }
 
 __host__ bool SchemeInteger::read(std::istream &is) {

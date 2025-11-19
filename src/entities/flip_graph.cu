@@ -449,9 +449,9 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
 
         flipsCount++;
 
-        if (scheme.m < bestRank || (scheme.m == bestRank && curand_uniform(&state) < 0.5)) {
+        if (scheme.m < bestRank || (scheme.m == bestRank && curand_uniform(&state) < 0.01)) {
             bestRank = scheme.m;
-            scheme.copyTo(schemesBest[idx]);
+            scheme.copyTo(schemesBest[idx], false);
         }
 
         if (curand_uniform(&state) * maxIterations < reduceProbability)
