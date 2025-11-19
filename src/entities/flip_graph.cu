@@ -227,7 +227,7 @@ void FlipGraph::updateRanks(int iteration, bool save) {
     std::unordered_map<std::string, int> n2bestIndex;
 
     for (int i = 0; i < schemesCount; i++) {
-        keys[i] = getKey(schemes[i], true, true);
+        keys[i] = getKey(schemes[i]);
 
         auto result = n2bestRank.find(keys[i]);
         if (result == n2bestRank.end() || schemes[i].m < result->second) {
