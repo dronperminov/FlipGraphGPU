@@ -7,18 +7,14 @@
 
 typedef uint64_t T;
 
-const int MAX_RANK = 292;
+const int MAX_RANK = 261;
 const int MAX_MATRIX_ELEMENTS = std::min(int(sizeof(T) * 8), 64);
 
 // project limit
-const int MIN_PROJECT_N1 = 2;
-const int MIN_PROJECT_N2 = 2;
-const int MIN_PROJECT_N3 = 3;
+const int MIN_PROJECT_N = 2;
 
 // extension limit
-const int MAX_EXTENSION_N1 = 10;
-const int MAX_EXTENSION_N2 = 10;
-const int MAX_EXTENSION_N3 = 10;
+const int MAX_EXTENSION_N = 10;
 
 // sandwiching limit
 const int MAX_SANDWICHING_N = 10;

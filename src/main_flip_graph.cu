@@ -19,8 +19,7 @@ int main(int argc, char* argv[]) {
     parser.add("--reduce-probability", ArgType::Real, "REAL", "reduce edge probability (divided by max iterations)", "1");
     parser.add("--sandwiching-probability", ArgType::Real, "REAL", "sandwiching edge probability (divided by max iterations)", "0.1");
     parser.add("--basis-probability", ArgType::Real, "REAL", "basis edge probability (divided by max iterations)", "0.1");
-    parser.add("--project-probability", ArgType::Real, "REAL", "project edge probability", "0.2");
-    parser.add("--extend-probability", ArgType::Real, "REAL", "extend edge probability", "0.2");
+    parser.add("--resize-probability", ArgType::Real, "REAL", "project/extend edge probability", "0.2");
     parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
 
     if (!parser.parse(argc, argv))
@@ -41,8 +40,7 @@ int main(int argc, char* argv[]) {
     probabilities.reduce = std::stod(parser.get("--reduce-probability"));
     probabilities.sandwiching = std::stod(parser.get("--sandwiching-probability"));
     probabilities.basis = std::stod(parser.get("--basis-probability"));
-    probabilities.project = std::stod(parser.get("--project-probability"));
-    probabilities.extend = std::stod(parser.get("--extend-probability"));
+    probabilities.resize = std::stod(parser.get("--resize-probability"));
 
     if (seed == 0)
         seed = time(0);
@@ -68,8 +66,7 @@ int main(int argc, char* argv[]) {
     std::cout << "  - reduce: " << probabilities.reduce << std::endl;
     std::cout << "  - sandwiching: " << probabilities.sandwiching << std::endl;
     std::cout << "  - basis: " << probabilities.basis << std::endl;
-    std::cout << "  - project: " << probabilities.project << std::endl;
-    std::cout << "  - extend: " << probabilities.extend << std::endl;
+    std::cout << "  - resize: " << probabilities.resize << std::endl;
     std::cout << "- seed: " << seed << std::endl;
 
     FlipGraph flipGraph(n1, n2, n3, schemesCount, blockSize, maxIterations, path, probabilities, seed);

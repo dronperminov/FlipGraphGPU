@@ -112,8 +112,12 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["7x7x8"] = 292;
 #else
     n2knownRanks["2x4x5"] = 33;
+    n2knownRanks["2x4x10"] = 65;
+
     n2knownRanks["2x5x7"] = 57; // ?
     n2knownRanks["2x5x8"] = 65; // ?
+    n2knownRanks["2x5x10"] = 80; // ?
+
     n2knownRanks["2x6x8"] = 77; // ?
     n2knownRanks["2x7x7"] = 77; // ?
     n2knownRanks["2x7x9"] = 101; // ?
@@ -121,6 +125,7 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["3x3x6"] = 42; // ?
     n2knownRanks["3x3x8"] = 57; // ?
     n2knownRanks["3x3x9"] = 64; // ?
+    n2knownRanks["3x3x10"] = 71; // ?
 
     n2knownRanks["3x4x7"] = 64; // ?
     n2knownRanks["3x4x8"] = 74; // ?
@@ -128,6 +133,7 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["3x6x6"] = 84; // ?
     n2knownRanks["3x6x7"] = 96; // ?
     n2knownRanks["3x6x9"] = 122; // ?
+    n2knownRanks["3x6x10"] = 136; // ?
 
     n2knownRanks["3x7x7"] = 113; // ?
     n2knownRanks["3x7x8"] = 128; // ?
@@ -141,15 +147,21 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["4x5x5"] = 73;
     n2knownRanks["4x5x6"] = 89;
     n2knownRanks["4x5x9"] = 133;
+    n2knownRanks["4x5x10"] = 146;
 
     n2knownRanks["4x7x9"] = 187;
 
     n2knownRanks["5x5x9"] = 166; // ?
+    n2knownRanks["5x5x10"] = 183; // ?
     n2knownRanks["5x6x10"] = 217; // ?
     n2knownRanks["5x7x8"] = 206; // ?
 
-    n2knownRanks["7x7x7"] = 261; // ?
-    n2knownRanks["7x7x8"] = 292; // ?
+    n2knownRanks["6x6x10"] = 258; // ?
+
+    n2knownRanks["7x7x7"] = 253; // ?
+    n2knownRanks["7x7x8"] = 288; // ?
+    n2knownRanks["7x8x8"] = 327; // ?
+    n2knownRanks["8x8x8"] = 364; // ?
 #endif
 
     CUDA_CHECK(cudaMallocManaged(&schemes, schemesCount * sizeof(Scheme)));
@@ -172,9 +184,10 @@ bool FlipGraph::initializeFromFile(std::istream &f) {
     std::cout << "Start reading " << std::min(count, schemesCount) << " schemes" << std::endl;
 
     for (int i = 0; i < count && i < schemesCount; i++)
-        if (!schemes[i].read(f))
+        if (!schemes[i].read(f, false))
             return false;
 
+    std::cout << "End reading " << std::min(count, schemesCount) << " schemes. Start initializing" << std::endl;
     initializeCopyKernel<<<numBlocks, blockSize>>>(schemes, schemesCount, count);
 
     CUDA_CHECK(cudaGetLastError());
@@ -191,15 +204,15 @@ void FlipGraph::initializeNaive() {
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-void FlipGraph::optimize() {
+void FlipGraph::randomWalk() {
     randomWalkKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, schemesCount, maxIterations, probabilities.reduce, probabilities.expand, probabilities.sandwiching, probabilities.basis);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-void FlipGraph::projectExtend() {
-    projectExtendKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, schemesCount, states, probabilities.extend, probabilities.project);
+void FlipGraph::resize() {
+    resizeKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, schemesCount, states, probabilities.resize);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -210,7 +223,7 @@ void FlipGraph::updateRanks(int iteration, bool save) {
     std::unordered_map<std::string, int> n2bestIndex;
 
     for (int i = 0; i < schemesCount; i++) {
-        keys[i] = getKey(schemes[i]);
+        keys[i] = getKey(schemes[i], true, true);
 
         auto result = n2bestRank.find(keys[i]);
         if (result == n2bestRank.end() || schemes[i].m < result->second) {
@@ -244,19 +257,25 @@ void FlipGraph::run() {
 
     for (int iteration = 0; 1; iteration++) {
         auto t1 = std::chrono::high_resolution_clock::now();
-        optimize();
+        randomWalk();
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
         elapsedTimes.push_back(duration.count() / 1000.0);
 
         report(startTime, iteration + 1, elapsedTimes);
 
-        if (probabilities.extend > 0 || probabilities.project > 0) {
-            projectExtend();
+        if (probabilities.resize > 0) {
+            resize();
             updateRanks(iteration, true);
         }
     }
 }
+
+
+bool FlipGraph::compareKeys(const Scheme &s1, const Scheme &s2) const {
+    return getKey(s1, true, true) < getKey(s2, true, true);
+}
+
 
 void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes, int count) {
     double lastTime = elapsedTimes[elapsedTimes.size() - 1];
@@ -287,7 +306,9 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
     std::cout << "|  elapsed  | iteration | run id |  size  |  real  | known | best | curr | flips count |" << std::endl;
     std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
 
-    std::sort(keys.begin(), keys.end());
+    std::sort(keys.begin(), keys.end(), [n2indices, this](std::string &s1, std::string &s2){
+        return compareKeys(schemes[n2indices.at(s1)[0]], schemes[n2indices.at(s2)[0]]);
+    });
 
     for (auto key : keys) {
         const std::vector<int> &indices = n2indices[key];
@@ -474,7 +495,7 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
         printf("invalid (%d) scheme (random walk)\n", idx);
 }
 
-__global__ void projectExtendKernel(Scheme *schemes, Scheme *schemesBest, int schemesCount, curandState *states, double extendProbability, double projectProbability) {
+__global__ void resizeKernel(Scheme *schemes, Scheme *schemesBest, int schemesCount, curandState *states, double resizeProbability) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= schemesCount)
@@ -487,29 +508,52 @@ __global__ void projectExtendKernel(Scheme *schemes, Scheme *schemesBest, int sc
         scheme.swapSize(state);
 
     int index = curand(&state) % schemesCount;
-    scheme.tryMerge(schemesBest[index], state);
+    bool merged = scheme.tryMerge(schemesBest[index], state);
 
-    int n1 = min(max(scheme.n[0], MIN_PROJECT_N1), MAX_EXTENSION_N1);
-    int n2 = min(max(scheme.n[1], MIN_PROJECT_N2), MAX_EXTENSION_N2);
-    int n3 = min(max(scheme.n[2], MIN_PROJECT_N3), MAX_EXTENSION_N3);
+    if (!merged && curand_uniform(&state) < resizeProbability) {
+        int n = scheme.n[0] * scheme.n[1] * scheme.n[2];
 
-    double d1 = double(n1 - MIN_PROJECT_N1) / (MAX_EXTENSION_N1 - MIN_PROJECT_N1);
-    double d2 = double(n2 - MIN_PROJECT_N2) / (MAX_EXTENSION_N2 - MIN_PROJECT_N2);
-    double d3 = double(n3 - MIN_PROJECT_N3) / (MAX_EXTENSION_N3 - MIN_PROJECT_N3);
-    double d = (d1 + d2 + d3) / 3.0;
+        float nMin = MIN_PROJECT_N * MIN_PROJECT_N * MIN_PROJECT_N;
+        float nMax = MAX_EXTENSION_N * MAX_EXTENSION_N * MAX_EXTENSION_N;
+        float t = (n - nMin) / (nMax - nMin);
 
-    if (curand_uniform(&state) < extendProbability * (1 - d)) {
-        if (curand(&state) & 1) {
-            scheme.tryExtend(state);
+        if (curand_uniform(&state) < t) {
+            int project[3];
+            int projectCount = 0;
+
+            for (int i = 0; i < 3; i++)
+                if (scheme.isValidProject(i, MIN_PROJECT_N))
+                    project[projectCount++] = i;
+
+            if (projectCount)
+                scheme.tryProject(state, project[curand(&state) % projectCount], MIN_PROJECT_N);
         }
         else {
-            scheme.tryProduct(state);
+            int product[3];
+            int productCount = 0;
+
+            if (curand(&state) & 1) {
+                int extend[3];
+                int extendCount = 0;
+
+                for (int i = 0; i < 3; i++)
+                    if (scheme.isValidExtension(i, MAX_EXTENSION_N))
+                        extend[extendCount++] = i;
+
+                if (extendCount)
+                    scheme.tryExtend(state, extend[curand(&state) % extendCount], MAX_EXTENSION_N);
+            }
+            else {
+                for (int i = 0; i < 3; i++)
+                    if (scheme.isValidProduct(i, MAX_EXTENSION_N))
+                        product[productCount++] = i;
+
+                if (productCount)
+                    scheme.tryProduct(state, product[curand(&state) % productCount], MAX_EXTENSION_N);
+            }
         }
     }
 
-    if (curand_uniform(&state) < projectProbability * d)
-        scheme.tryProject(state);
-
     if (!scheme.validate())
-        printf("invalid (%d) scheme (project extend)\n", idx);
+        printf("invalid (%d) scheme (resize)\n", idx);
 }

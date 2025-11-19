@@ -1,18 +1,31 @@
 #include "utils.cuh"
 
-std::string getKey(int n1, int n2, int n3, bool sorted) {
+std::string getKey(int n1, int n2, int n3, bool sorted, bool withZeros) {
     std::vector<int> n = {n1, n2, n3};
 
     if (sorted)
         std::sort(n.begin(), n.end());
 
     std::stringstream ss;
-    ss << n[0] << "x" << n[1] << "x" << n[2];
+    if (withZeros)
+        ss << std::setfill('0') << std::setw(2);
+
+    ss << n[0] << "x";
+
+    if (withZeros)
+        ss << std::setfill('0') << std::setw(2);
+
+    ss << n[1] << "x";
+
+    if (withZeros)
+        ss << std::setfill('0') << std::setw(2);
+
+    ss << n[2];
     return ss.str();
 }
 
-std::string getKey(const Scheme &scheme, bool sorted) {
-    return getKey(scheme.n[0], scheme.n[1], scheme.n[2], sorted);
+std::string getKey(const Scheme &scheme, bool sorted, bool withZeros) {
+    return getKey(scheme.n[0], scheme.n[1], scheme.n[2], sorted, withZeros);
 }
 
 std::string prettyTime(double elapsed) {

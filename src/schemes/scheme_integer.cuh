@@ -27,6 +27,9 @@ struct SchemeInteger {
     __host__ bool read(std::istream &is, int n1, int n2, int n3, int m, bool checkValidity = true);
 
     __device__ __host__ int getComplexity() const;
+    __device__ __host__ bool isValidProject(int i, int minN) const;
+    __device__ __host__ bool isValidExtension(int i, int maxN) const;
+    __device__ __host__ bool isValidProduct(int i, int maxN) const;
 
     __device__ bool tryFlip(curandState &state, bool checkReduce = true);
     __device__ bool tryPlus(curandState &state);
@@ -34,9 +37,9 @@ struct SchemeInteger {
     __device__ bool trySplitExisted(curandState &state);
     __device__ bool tryExpand(int count, curandState &state);
     __device__ __host__ bool tryReduce();
-    __device__ bool tryProject(curandState &state, int n1 = MIN_PROJECT_N1, int n2 = MIN_PROJECT_N2, int n3 = MIN_PROJECT_N3);
-    __device__ bool tryExtend(curandState &state, int n1 = MAX_EXTENSION_N1, int n2 = MAX_EXTENSION_N2, int n3 = MAX_EXTENSION_N3);
-    __device__ bool tryProduct(curandState &state, int n1 = MAX_EXTENSION_N1, int n2 = MAX_EXTENSION_N2, int n3 = MAX_EXTENSION_N3);
+    __device__ bool tryProject(curandState &state, int p, int minN = MIN_PROJECT_N);
+    __device__ bool tryExtend(curandState &state, int p, int maxN = MAX_EXTENSION_N);
+    __device__ bool tryProduct(curandState &state, int p, int maxN = MAX_EXTENSION_N);
     __device__ bool tryMerge(const SchemeInteger &scheme, curandState &state);
     __device__ void sandwiching(curandState &state);
     __device__ void swapBasis(curandState &state);
@@ -55,8 +58,6 @@ private:
     __device__ __host__ void excludeRow(int matrix, int row);
     __device__ __host__ void addColumn(int matrix);
     __device__ __host__ void addRow(int matrix);
-    __device__ __host__ bool isValidExtension(int i, int j, int k, int maxN1, int maxN2, int maxN3) const;
-    __device__ __host__ bool isValidProduct(int i, int maxN1, int maxN2, int maxN3) const;
     __device__ __host__ bool fixSigns();
 
     __device__ __host__ void flip(int i, int j, int k, int index1, int index2, bool checkReduce);

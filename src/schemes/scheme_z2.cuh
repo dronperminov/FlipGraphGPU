@@ -27,11 +27,14 @@ struct SchemeZ2 {
 
     __device__ __host__ bool validate() const;
     __device__ __host__ void initializeNaive(int n1, int n2, int n3);
-    __device__ __host__ void copyTo(SchemeZ2 &target) const;
+    __device__ __host__ void copyTo(SchemeZ2 &target, bool withFlips = true) const;
     __host__ bool read(std::istream &is, bool checkValidity = true);
     __host__ bool read(std::istream &is, int n1, int n2, int n3, int m, bool checkValidity = true);
 
     __device__ __host__ int getComplexity() const;
+    __device__ __host__ bool isValidProject(int i, int minN = MIN_PROJECT_N) const;
+    __device__ __host__ bool isValidExtension(int i, int maxN = MAX_EXTENSION_N) const;
+    __device__ __host__ bool isValidProduct(int i, int maxN = MAX_EXTENSION_N) const;
 
     __device__ bool tryFlip(curandState &state, bool checkReduce = true);
     __device__ bool tryPlus(curandState &state);
@@ -40,9 +43,9 @@ struct SchemeZ2 {
     __device__ bool tryExpand(int count, curandState &state);
     __device__ bool tryReduce();
     __device__ bool tryReduceGauss(curandState &state);
-    __device__ bool tryProject(curandState &state, int n1 = MIN_PROJECT_N1, int n2 = MIN_PROJECT_N2, int n3 = MIN_PROJECT_N3);
-    __device__ bool tryExtend(curandState &state, int n1 = MAX_EXTENSION_N1, int n2 = MAX_EXTENSION_N2, int n3 = MAX_EXTENSION_N3);
-    __device__ bool tryProduct(curandState &state, int n1 = MAX_EXTENSION_N1, int n2 = MAX_EXTENSION_N2, int n3 = MAX_EXTENSION_N3);
+    __device__ bool tryProject(curandState &state, int p, int minN);
+    __device__ bool tryExtend(curandState &state, int p, int maxN);
+    __device__ bool tryProduct(curandState &state, int p, int maxN);
     __device__ bool tryMerge(const SchemeZ2 &scheme, curandState &state);
     __device__ void sandwiching(curandState &state);
     __device__ void swapBasis(curandState &state);
@@ -61,8 +64,6 @@ private:
     __device__ __host__ void excludeRow(int matrix, int row);
     __device__ __host__ void addColumn(int matrix);
     __device__ __host__ void addRow(int matrix);
-    __device__ __host__ bool isValidExtension(int i, int j, int k, int maxN1, int maxN2, int maxN3) const;
-    __device__ __host__ bool isValidProduct(int i, int maxN1, int maxN2, int maxN3) const;
 
     __device__ ReduceGaussCandidate getReduceGaussCandidate(curandState &state) const;
 

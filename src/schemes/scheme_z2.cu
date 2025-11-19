@@ -54,7 +54,7 @@ __device__ __host__ void SchemeZ2::initializeNaive(int n1, int n2, int n3) {
     initFlips();
 }
 
-__device__ __host__ void SchemeZ2::copyTo(SchemeZ2 &target) const {
+__device__ __host__ void SchemeZ2::copyTo(SchemeZ2 &target, bool withFlips) const {
     target.m = m;
 
     for (int i = 0; i < 3; i++) {
@@ -65,7 +65,8 @@ __device__ __host__ void SchemeZ2::copyTo(SchemeZ2 &target) const {
             target.uvw[i][index] = uvw[i][index];
     }
 
-    target.initFlips();
+    if (withFlips)
+        target.initFlips();
 }
 
 __host__ bool SchemeZ2::read(std::istream &is, bool checkValidity) {
@@ -238,30 +239,30 @@ __device__ __host__ void SchemeZ2::addRow(int matrix) {
     }
 }
 
-__device__ __host__ bool SchemeZ2::isValidExtension(int i, int j, int k, int maxN1, int maxN2, int maxN3) const {
-    int newN[3] = {n[0], n[1], n[2]};
-    int maxN[3] = {maxN1, maxN2, maxN3};
+__device__ __host__ bool SchemeZ2::isValidProject(int i, int minN) const {
+    return n[i] - 1 >= minN && n[(i + 1) % 3] >= minN && n[(i + 2) % 3] >= minN;
+}
 
+__device__ __host__ bool SchemeZ2::isValidExtension(int i, int maxN) const {
+    int newN[3] = {n[0], n[1], n[2]};
     newN[i] += 1;
 
-    if (m + newN[j] * newN[k] > MAX_RANK)
+    if (m + newN[(i + 1) % 3] * newN[(i + 2) % 3] > MAX_RANK)
         return false;
 
     for (int p = 0; p < 3; p++) {
         if (newN[p] * newN[(p + 1) % 3] > MAX_MATRIX_ELEMENTS)
             return false;
 
-        if (newN[p] > maxN[p])
+        if (newN[p] > maxN)
             return false;
     }
 
     return true;
 }
 
-__device__ __host__ bool SchemeZ2::isValidProduct(int i, int maxN1, int maxN2, int maxN3) const {
+__device__ __host__ bool SchemeZ2::isValidProduct(int i, int maxN) const {
     int newN[3] = {n[0], n[1], n[2]};
-    int maxN[3] = {maxN1, maxN2, maxN3};
-
     newN[i] *= 2;
 
     if (m * 2 > MAX_RANK)
@@ -271,7 +272,7 @@ __device__ __host__ bool SchemeZ2::isValidProduct(int i, int maxN1, int maxN2, i
         if (newN[p] * newN[(p + 1) % 3] > MAX_MATRIX_ELEMENTS)
             return false;
 
-        if (newN[p] > maxN[p])
+        if (newN[p] > maxN)
             return false;
     }
 
@@ -1026,13 +1027,25 @@ __device__ bool SchemeZ2::trySplitExisted(curandState &state) {
     return true;
 }
 
-__device__ bool SchemeZ2::tryReduceGauss(curandState &state) {
-    ReduceGaussCandidate possibleReduce = getReduceGaussCandidate(state);
-    if (possibleReduce.i == -1)
-        return false;
+__device__ bool SchemeZ2::tryExpand(int count, curandState &state) {
+    int maxRank = n[0] * n[1] * n[2];
+    bool result = false;
 
-    reduceGauss(possibleReduce.i, possibleReduce.combination, possibleReduce.size);
-    return true;
+    for (int i = 0; i < count && m < maxRank; i++) {
+        int v = curand(&state) % 3;
+
+        if (v == 0) {
+            result |= tryPlus(state);
+        }
+        else if (v == 1) {
+            result |= trySplit(state);
+        }
+        else {
+            result |= trySplitExisted(state);
+        }
+    }
+
+    return result;
 }
 
 __device__ bool SchemeZ2::tryReduce() {
@@ -1064,23 +1077,19 @@ __device__ bool SchemeZ2::tryReduce() {
     return false;
 }
 
-__device__ bool SchemeZ2::tryProject(curandState &state, int n1, int n2, int n3) {
-    int indices[3];
-    int size = 0;
-
-    if (n[0] - 1 >= n1 && n[1] >= n2 && n[2] >= n3)
-        indices[size++] = 0;
-
-    if (n[0] >= n1 && n[1] - 1 >= n2 && n[2] >= n3)
-        indices[size++] = 1;
-
-    if (n[0] >= n1 && n[1] >= n2 && n[2] - 1 >= n3)
-        indices[size++] = 2;
-
-    if (size == 0)
+__device__ bool SchemeZ2::tryReduceGauss(curandState &state) {
+    ReduceGaussCandidate possibleReduce = getReduceGaussCandidate(state);
+    if (possibleReduce.i == -1)
         return false;
 
-    int p = indices[curand(&state) % size];
+    reduceGauss(possibleReduce.i, possibleReduce.combination, possibleReduce.size);
+    return true;
+}
+
+__device__ bool SchemeZ2::tryProject(curandState &state, int p, int minN) {
+    if (!isValidProject(p, minN))
+        return false;
+
     int q = curand(&state) % n[p];
     project(p, q);
 
@@ -1090,23 +1099,11 @@ __device__ bool SchemeZ2::tryProject(curandState &state, int n1, int n2, int n3)
     return true;
 }
 
-__device__ bool SchemeZ2::tryExtend(curandState &state, int n1, int n2, int n3) {
-    int indices[3];
-    int size = 0;
-
-    if (isValidExtension(0, 1, 2, n1, n2, n3))
-        indices[size++] = 0;
-
-    if (isValidExtension(1, 0, 2, n1, n2, n3))
-        indices[size++] = 1;
-
-    if (isValidExtension(2, 0, 1, n1, n2, n3))
-        indices[size++] = 2;
-
-    if (size == 0)
+__device__ bool SchemeZ2::tryExtend(curandState &state, int p, int maxN) {
+    if (!isValidExtension(p, maxN))
         return false;
 
-    extend(indices[curand(&state) % size]);
+    extend(p);
 
     while (tryReduce())
         ;
@@ -1114,45 +1111,11 @@ __device__ bool SchemeZ2::tryExtend(curandState &state, int n1, int n2, int n3) 
     return true;
 }
 
-__device__ bool SchemeZ2::tryExpand(int count, curandState &state) {
-    int maxRank = n[0] * n[1] * n[2];
-    bool result = false;
-
-    for (int i = 0; i < count && m < maxRank; i++) {
-        int v = curand(&state) % 3;
-
-        if (v == 0) {
-            result |= tryPlus(state);
-        }
-        else if (v == 1) {
-            result |= trySplit(state);
-        }
-        else {
-            result |= trySplitExisted(state);
-        }
-    }
-
-    return result;
-}
-
-__device__ bool SchemeZ2::tryProduct(curandState &state, int n1, int n2, int n3) {
-    int indices[3];
-    int size = 0;
-
-    if (isValidProduct(0, n1, n2, n3))
-        indices[size++] = 0;
-
-    if (isValidProduct(1, n1, n2, n3))
-        indices[size++] = 1;
-
-    if (isValidProduct(2, n1, n2, n3))
-        indices[size++] = 2;
-
-    if (size == 0)
+__device__ bool SchemeZ2::tryProduct(curandState &state, int p, int maxN) {
+    if (!isValidProduct(p, maxN))
         return false;
 
-    product(indices[curand(&state) % size]);
-
+    product(p);
     return true;
 }
 
@@ -1171,13 +1134,13 @@ __device__ bool SchemeZ2::tryMerge(const SchemeZ2 &scheme, curandState &state) {
     int p[3];
     int size = 0;
 
-    if (n1 <= MAX_EXTENSION_N1 && n1 * n[1] <= MAX_MATRIX_ELEMENTS && n1 * n[2] <= MAX_MATRIX_ELEMENTS && eq2 && eq3)
+    if (n1 <= MAX_EXTENSION_N && n1 * n[1] <= MAX_MATRIX_ELEMENTS && n1 * n[2] <= MAX_MATRIX_ELEMENTS && eq2 && eq3)
         p[size++] = 0;
 
-    if (eq1 && n2 <= MAX_EXTENSION_N2 && n[0] * n2 <= MAX_MATRIX_ELEMENTS && n[2] * n2 <= MAX_MATRIX_ELEMENTS && eq3)
+    if (eq1 && n2 <= MAX_EXTENSION_N && n[0] * n2 <= MAX_MATRIX_ELEMENTS && n[2] * n2 <= MAX_MATRIX_ELEMENTS && eq3)
         p[size++] = 1;
 
-    if (eq1 && eq2 && n3 <= MAX_EXTENSION_N3 && n[0] * n3 <= MAX_MATRIX_ELEMENTS && n[1] * n3 <= MAX_MATRIX_ELEMENTS)
+    if (eq1 && eq2 && n3 <= MAX_EXTENSION_N && n[0] * n3 <= MAX_MATRIX_ELEMENTS && n[1] * n3 <= MAX_MATRIX_ELEMENTS)
         p[size++] = 2;
 
     if (size == 0)
