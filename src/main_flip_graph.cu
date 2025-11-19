@@ -69,6 +69,7 @@ int main(int argc, char* argv[]) {
     std::cout << "  - sandwiching: " << probabilities.sandwiching << std::endl;
     std::cout << "  - basis: " << probabilities.basis << std::endl;
     std::cout << "  - resize: " << probabilities.resize << std::endl;
+    std::cout << "- log period: " << logPeriod << std::endl;
     std::cout << "- seed: " << seed << std::endl;
 
     FlipGraph flipGraph(n1, n2, n3, schemesCount, blockSize, maxIterations, path, probabilities, seed);
