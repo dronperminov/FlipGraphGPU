@@ -156,7 +156,7 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["5x6x10"] = 217; // ?
     n2knownRanks["5x7x8"] = 206; // ?
 
-    n2knownRanks["6x6x10"] = 258; // ?
+    n2knownRanks["6x6x10"] = 255; // ?
 
     n2knownRanks["7x7x7"] = 253; // ?
     n2knownRanks["7x7x8"] = 288; // ?

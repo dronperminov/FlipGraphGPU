@@ -953,7 +953,7 @@ __device__ bool SchemeZ2::tryFlip(curandState &state, bool checkReduce) {
 }
 
 __device__ bool SchemeZ2::tryPlus(curandState &state) {
-    if (m >= MAX_RANK)
+    if (m >= MAX_RANK || m >= n[0] * n[1] * n[2])
         return false;
 
     int index1 = curand(&state) % m;
@@ -974,7 +974,7 @@ __device__ bool SchemeZ2::tryPlus(curandState &state) {
 }
 
 __device__ bool SchemeZ2::trySplit(curandState &state) {
-    if (m >= MAX_RANK)
+    if (m >= MAX_RANK || m >= n[0] * n[1] * n[2])
         return false;
 
     int index = curand(&state) % m;
@@ -1002,7 +1002,7 @@ __device__ bool SchemeZ2::trySplit(curandState &state) {
 }
 
 __device__ bool SchemeZ2::trySplitExisted(curandState &state) {
-    if (m >= MAX_RANK)
+    if (m >= MAX_RANK || m >= n[0] * n[1] * n[2])
         return false;
 
     int permutation[3];
