@@ -21,6 +21,8 @@ struct Addition {
     __device__ __host__ void inverse();
     __device__ void random(curandState &state);
 
+    __device__ __host__ int compare(const Addition &addition) const;
+
     __device__ __host__ bool operator==(const Addition &addition) const;
     __device__ __host__ bool operator!=(const Addition &addition) const;
     __device__ __host__ int operator[](int index) const;

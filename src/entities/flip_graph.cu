@@ -516,11 +516,8 @@ __global__ void resizeKernel(Scheme *schemes, Scheme *schemesBest, int schemesCo
         if (p < n - nMin) {
             scheme.tryProject(state);
         }
-        else if (p & 1) {
+        else if (p & 1 || !scheme.tryProduct(state)) {
             scheme.tryExtend(state);
-        }
-        else {
-            scheme.tryProduct(state);
         }
     }
 

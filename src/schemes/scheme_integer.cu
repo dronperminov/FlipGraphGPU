@@ -349,22 +349,24 @@ __device__ __host__ void SchemeInteger::flip(int i, int j, int k, int index1, in
     for (int index = 0; index < m; index++) {
         if (index != index1 && uvw[j][index] == uvw[j][index1]) {
             if (checkReduce) {
-                if (uvw[i][index] == uvw[i][index1] && uvw[k][index].limitSum(uvw[k][index1], k != 2)) {
+                int cmpI = uvw[i][index].compare(uvw[i][index1]);
+                if (cmpI == 1 && uvw[k][index].limitSum(uvw[k][index1], k != 2)) {
                     reduceAdd(k, index, index1);
                     return;
                 }
 
-                if (i == 2 && uvw[i][index] == -uvw[i][index1] && uvw[k][index].limitSub(uvw[k][index1], k != 2)) {
+                if (i == 2 && cmpI == -1 && uvw[k][index].limitSub(uvw[k][index1], true)) {
                     reduceSub(k, index, index1);
                     return;
                 }
 
-                if (uvw[k][index] == uvw[k][index1] && uvw[i][index].limitSum(uvw[i][index1], i != 2)) {
+                int cmpK = uvw[k][index].compare(uvw[k][index1]);
+                if (cmpK == 1 && uvw[i][index].limitSum(uvw[i][index1], i != 2)) {
                     reduceAdd(i, index, index1);
                     return;
                 }
 
-                if (k == 2 && uvw[k][index] == -uvw[k][index1] && uvw[i][index].limitSub(uvw[i][index1], i != 2)) {
+                if (k == 2 && cmpK == -1 && uvw[i][index].limitSub(uvw[i][index1], true)) {
                     reduceSub(i, index, index1);
                     return;
                 }
@@ -375,22 +377,24 @@ __device__ __host__ void SchemeInteger::flip(int i, int j, int k, int index1, in
 
         if (index != index2 && uvw[k][index] == uvw[k][index2]) {
             if (checkReduce) {
-                if (uvw[i][index] == uvw[i][index2] && uvw[j][index].limitSum(uvw[j][index2], j != 2)) {
+                int cmpI = uvw[i][index].compare(uvw[i][index2]);
+                if (cmpI == 1 && uvw[j][index].limitSum(uvw[j][index2], j != 2)) {
                     reduceAdd(j, index, index2);
                     return;
                 }
 
-                if (i == 2 && uvw[i][index] == -uvw[i][index2] && uvw[j][index].limitSub(uvw[j][index2], j != 2)) {
+                if (i == 2 && cmpI == -1 && uvw[j][index].limitSub(uvw[j][index2], true)) {
                     reduceSub(j, index, index2);
                     return;
                 }
 
-                if (uvw[j][index] == uvw[j][index2] && uvw[i][index].limitSum(uvw[i][index2], i != 2)) {
+                int cmpJ = uvw[j][index].compare(uvw[j][index2]);
+                if (cmpJ == 1 && uvw[i][index].limitSum(uvw[i][index2], i != 2)) {
                     reduceAdd(i, index, index2);
                     return;
                 }
 
-                if (j == 2 && uvw[j][index] == -uvw[j][index2] && uvw[i][index].limitSub(uvw[i][index2], i != 2)) {
+                if (j == 2 && cmpJ == -1 && uvw[i][index].limitSub(uvw[i][index2], true)) {
                     reduceSub(i, index, index2);
                     return;
                 }
@@ -435,6 +439,7 @@ __device__ __host__ void SchemeInteger::plus(int i, int j, int k, int index1, in
     }
 
     removeZeroes();
+    fixSigns();
     initFlips();
 }
 
@@ -442,6 +447,7 @@ __device__ __host__ void SchemeInteger::split(int i, int j, int k, int index, co
     addTriplet(i, j, k, uvw[i][index] - addition, uvw[j][index], uvw[k][index]);
     uvw[i][index] = addition;
 
+    fixSigns();
     initFlips();
 }
 
@@ -922,12 +928,13 @@ __device__ __host__ bool SchemeInteger::tryReduce() {
             return true;
         }
 
-        if (uvw[2][index1] == uvw[2][index2] && uvw[1][index1].limitSum(uvw[1][index2], true)) {
+        int cmp2 = uvw[2][index1].compare(uvw[2][index2]);
+        if (cmp2 == 1 && uvw[1][index1].limitSum(uvw[1][index2], true)) {
             reduceAdd(1, index1, index2);
             return true;
         }
 
-        if (uvw[2][index1] == -uvw[2][index2] && uvw[1][index1].limitSub(uvw[1][index2], true)) {
+        if (cmp2 == -1 && uvw[1][index1].limitSub(uvw[1][index2], true)) {
             reduceSub(1, index1, index2);
             return true;
         }
@@ -936,13 +943,14 @@ __device__ __host__ bool SchemeInteger::tryReduce() {
     for (size_t i = 0; i < flips[1].size; i++) {
         int index1 = flips[1].index1(i);
         int index2 = flips[1].index2(i);
+        int cmp2 = uvw[2][index1].compare(uvw[2][index2]);
 
-        if (uvw[2][index1] == uvw[2][index2] && uvw[0][index1].limitSum(uvw[0][index2], true)) {
+        if (cmp2 == 1 && uvw[0][index1].limitSum(uvw[0][index2], true)) {
             reduceAdd(0, index1, index2);
             return true;
         }
 
-        if (uvw[2][index1] == -uvw[2][index2] && uvw[0][index1].limitSub(uvw[0][index2], true)) {
+        if (cmp2 == -1 && uvw[0][index1].limitSub(uvw[0][index2], true)) {
             reduceSub(0, index1, index2);
             return true;
         }

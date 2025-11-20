@@ -79,6 +79,19 @@ __device__ void Addition::random(curandState &state) {
     valid = true;
 }
 
+__device__ __host__ int Addition::compare(const Addition &addition) const {
+    if (values != addition.values)
+        return 0;
+
+    if (signs == addition.signs)
+        return 1;
+
+    if (signs == ((~addition.signs) & addition.values))
+        return -1;
+
+    return 0;
+}
+
 __device__ __host__ bool Addition::operator==(const Addition &addition) const {
     return values == addition.values && signs == addition.signs;
 }
