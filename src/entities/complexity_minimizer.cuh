@@ -35,13 +35,13 @@ public:
     ComplexityMinimizer(int schemesCount, int blockSize, int maxIterations, const std::string &path, int seed, int topCount = 10);
 
     bool read(std::istream &f);
-    void minimize(int targetComplexity);
+    void minimize(int targetComplexity, int maxNoImprovements);
 
     ~ComplexityMinimizer();
 private:
     void initialize();
     void minimizeIteration();
-    void updateBest(int iteration);
+    bool updateBest(int iteration);
     void report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes);
 
     std::string getSavePath(const Scheme &scheme, int iteration, int runId) const;

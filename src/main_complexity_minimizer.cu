@@ -13,6 +13,7 @@ int main(int argc, char* argv[]) {
     parser.add("--input-path", ArgType::String, "PATH", "path to init scheme(s)", "");
     parser.add("--block-size", ArgType::Natural, "INT", "number of cuda threads", "32");
     parser.add("--target-complexity", ArgType::Natural, "INT", "target complexity", "0");
+    parser.add("--max-no-improvements", ArgType::Natural, "INT", "max iterations without improvements", "3");
     parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
 
     if (!parser.parse(argc, argv))
@@ -24,6 +25,7 @@ int main(int argc, char* argv[]) {
     std::string inputPath = parser.get("--input-path");
     int blockSize = std::stoi(parser.get("--block-size"));
     int targetComplexity = std::stoi(parser.get("--target-complexity"));
+    int maxNoImprovements = std::stoi(parser.get("--max-no-improvements"));
     int seed = std::stoi(parser.get("--seed"));
 
     if (seed == 0)
@@ -41,6 +43,7 @@ int main(int argc, char* argv[]) {
     std::cout << "- path: " << path << std::endl;
     std::cout << "- block size: " << blockSize << std::endl;
     std::cout << "- target complexity: " << targetComplexity << std::endl;
+    std::cout << "- max no improvements: " << maxNoImprovements << std::endl;
     std::cout << "- seed: " << seed << std::endl;
 
     ComplexityMinimizer minimizer(schemesCount, blockSize, maxIterations, path, seed);
@@ -54,7 +57,7 @@ int main(int argc, char* argv[]) {
     }
 
     try {
-        minimizer.minimize(targetComplexity);
+        minimizer.minimize(targetComplexity, maxNoImprovements);
         std::cout << "Success!" << std::endl;
     }
     catch (std::runtime_error e) {

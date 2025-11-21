@@ -34,20 +34,33 @@ bool ComplexityMinimizer::read(std::istream &f) {
     return true;
 }
 
-void ComplexityMinimizer::minimize(int targetComplexity) {
+void ComplexityMinimizer::minimize(int targetComplexity, int maxNoImprovements) {
     initialize();
 
     auto startTime = std::chrono::high_resolution_clock::now();
     std::vector<double> elapsedTimes;
 
+    int noImprovements = 0;
+
     for (int iteration = 1; bestComplexity > targetComplexity; iteration++) {
         auto t1 = std::chrono::high_resolution_clock::now();
         minimizeIteration();
-        updateBest(iteration);
+        bool improved = updateBest(iteration);
         auto t2 = std::chrono::high_resolution_clock::now();
 
         elapsedTimes.push_back(std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() / 1000.0);
         report(startTime, iteration, elapsedTimes);
+
+        if (improved) {
+            noImprovements = 0;
+        }
+        else {
+            noImprovements++;
+            std::cout << "No improvements for " << noImprovements << " iterations" << std::endl;
+
+            if (noImprovements >= maxNoImprovements)
+                break;
+        }
     }
 }
 
@@ -70,17 +83,19 @@ void ComplexityMinimizer::minimizeIteration() {
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-void ComplexityMinimizer::updateBest(int iteration) {
+bool ComplexityMinimizer::updateBest(int iteration) {
     std::partial_sort(indices.begin(), indices.begin() + topCount, indices.end(), [this](int index1, int index2) { return bestComplexities[index1] < bestComplexities[index2]; });
     int topIndex = indices[0];
 
-    if (bestComplexities[topIndex] < bestComplexity) {
-        std::string savePath = getSavePath(schemesBest[topIndex], iteration, topIndex);
-        schemesBest[topIndex].save(savePath);
+    if (bestComplexities[topIndex] >= bestComplexity)
+        return false;
 
-        std::cout << "Best complexity improved from " << bestComplexity << " to " << bestComplexities[topIndex] << "! Scheme saved to \"" << savePath << "\"" << std::endl;
-        bestComplexity = bestComplexities[topIndex];
-    }
+    std::string savePath = getSavePath(schemesBest[topIndex], iteration, topIndex);
+    schemesBest[topIndex].save(savePath);
+
+    std::cout << "Best complexity improved from " << bestComplexity << " to " << bestComplexities[topIndex] << "! Scheme saved to \"" << savePath << "\"" << std::endl;
+    bestComplexity = bestComplexities[topIndex];
+    return true;
 }
 
 void ComplexityMinimizer::report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes) {
@@ -160,8 +175,12 @@ __global__ void initializeKernel(Scheme *schemes, Scheme *schemesBest, int *best
     if (idx >= schemesCount)
         return;
 
-    if (idx >= initialCount)
+    if (idx >= initialCount) {
         schemes[idx % initialCount].copyTo(schemes[idx]);
+    }
+    else if (!schemes[idx].validate()) {
+        printf("Invalid scheme %d\n", idx);
+    }
 
     schemes[idx].copyTo(schemesBest[idx]);
     bestComplexities[idx] = complexity;
