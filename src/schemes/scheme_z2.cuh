@@ -47,6 +47,7 @@ struct SchemeZ2 {
     __device__ bool tryExtend(curandState &state, int maxN = MAX_EXTENSION_N);
     __device__ bool tryProduct(curandState &state, int maxN = MAX_EXTENSION_N);
     __device__ bool tryMerge(const SchemeZ2 &scheme, curandState &state);
+    __device__ bool tryProduct(const SchemeZ2 &scheme);
     __device__ void sandwiching(curandState &state);
     __device__ void swapBasis(curandState &state);
     __device__ void swapSize(curandState &state);
@@ -82,6 +83,7 @@ private:
     __device__ __host__ void extend(int p);
     __device__ __host__ void product(int p);
     __device__ __host__ void merge(const SchemeZ2 &scheme, int p);
+    __device__ __host__ void product(const SchemeZ2 &scheme);
     __device__ __host__ void swapBasisRows(int i1, int i2);
     __device__ __host__ void swapBasisColumns(int j1, int j2);
     __device__ __host__ void swapSize(int p1, int p2);

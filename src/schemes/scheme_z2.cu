@@ -787,6 +787,51 @@ __device__ __host__ void SchemeZ2::merge(const SchemeZ2 &scheme, int p) {
     //     printf("invalid merge over %d (%d, %d, %d, %d) <- (%d, %d, %d, %d)\n", p, n[0], n[1], n[2], m, scheme.n[0], scheme.n[1], scheme.n[2], scheme.m);
 }
 
+__device__ __host__ void SchemeZ2::product(const SchemeZ2 &scheme2) {
+    SchemeZ2 scheme1;
+    copyTo(scheme1, false);
+
+    for (int i = 0; i < 3; i++)
+        n[i] = scheme1.n[i] * scheme2.n[i];
+
+    for (int i = 0; i < 3; i++)
+        nn[i] = n[i] * n[(i + 1) % 3];
+
+    m = scheme1.m * scheme2.m;
+
+    for (int index1 = 0; index1 < scheme1.m; index1++) {
+        for (int index2 = 0; index2 < scheme2.m; index2++) {
+            int index = index1 * scheme2.m + index2;
+
+            for (int p = 0; p < 3; p++) {
+                int p1 = (p + 1) % 3;
+
+                uvw[p][index] = 0;
+
+                for (int i = 0; i < scheme1.nn[p]; i++) {
+                    for (int j = 0; j < scheme2.nn[p]; j++) {
+                        int row1 = i / scheme1.n[p1];
+                        int col1 = i % scheme1.n[p1];
+                        T value1 = (scheme1.uvw[p][index1] >> i) & 1;
+
+                        int row2 = j / scheme2.n[p1];
+                        int col2 = j % scheme2.n[p1];
+                        T value2 = (scheme2.uvw[p][index2] >> j) & 1;
+
+                        int row = row1 * scheme2.n[p] + row2;
+                        int col = col1 * scheme2.n[p1] + col2;
+                        T value = value1 & value2;
+
+                        uvw[p][index] |= value << (row * n[p1] + col);
+                    }
+                }
+            }
+        }
+    }
+
+    initFlips();
+}
+
 __device__ __host__ void SchemeZ2::swapBasisRows(int i1, int i2) {
     int rows[MAX_MATRIX_ELEMENTS];
 
@@ -1174,6 +1219,27 @@ __device__ bool SchemeZ2::tryMerge(const SchemeZ2 &scheme, curandState &state) {
         return false;
 
     merge(scheme, p[curand(&state) % size]);
+    return true;
+}
+
+__device__ bool SchemeZ2::tryProduct(const SchemeZ2 &scheme) {
+    if (m * scheme.m > MAX_RANK)
+        return false;
+
+    int sizes[3];
+
+    for (int i = 0; i < 3; i++)
+        sizes[i] = n[i] * scheme.n[i];
+
+    for (int i = 0; i < 3; i++) {
+        if (sizes[i] > MAX_EXTENSION_N)
+            return false;
+
+        if (sizes[i] * sizes[(i + 1) % 3] > MAX_MATRIX_ELEMENTS)
+            return false;
+    }
+
+    product(scheme);
     return true;
 }
 

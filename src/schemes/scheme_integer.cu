@@ -649,6 +649,50 @@ __device__ __host__ void SchemeInteger::merge(const SchemeInteger &scheme, int p
     initFlips();
 }
 
+__device__ __host__ void SchemeInteger::product(const SchemeInteger &scheme2) {
+    SchemeInteger scheme1;
+    copyTo(scheme1, false);
+
+    for (int i = 0; i < 3; i++)
+        n[i] = scheme1.n[i] * scheme2.n[i];
+
+    for (int i = 0; i < 3; i++)
+        nn[i] = n[i] * n[(i + 1) % 3];
+
+    m = scheme1.m * scheme2.m;
+
+    for (int index1 = 0; index1 < scheme1.m; index1++) {
+        for (int index2 = 0; index2 < scheme2.m; index2++) {
+            int index = index1 * scheme2.m + index2;
+
+            for (int p = 0; p < 3; p++) {
+                int p1 = (p + 1) % 3;
+
+                uvw[p][index] = Addition(nn[p]);
+
+                for (int i = 0; i < scheme1.nn[p]; i++) {
+                    for (int j = 0; j < scheme2.nn[p]; j++) {
+                        int row1 = i / scheme1.n[p1];
+                        int col1 = i % scheme1.n[p1];
+                        int value1 = scheme1.uvw[p][index1][i];
+
+                        int row2 = j / scheme2.n[p1];
+                        int col2 = j % scheme2.n[p1];
+                        int value2 = scheme2.uvw[p][index2][j];
+
+                        int row = row1 * scheme2.n[p] + row2;
+                        int col = col1 * scheme2.n[p1] + col2;
+
+                        uvw[p][index].set(row * n[p1] + col, value1 * value2);
+                    }
+                }
+            }
+        }
+    }
+
+    initFlips();
+}
+
 __device__ __host__ void SchemeInteger::swapBasisRows(int i1, int i2) {
     int rows[MAX_MATRIX_ELEMENTS];
 
@@ -1047,6 +1091,27 @@ __device__ bool SchemeInteger::tryMerge(const SchemeInteger &scheme, curandState
         return false;
 
     merge(scheme, p[curand(&state) % size]);
+    return true;
+}
+
+__device__ bool SchemeInteger::tryProduct(const SchemeInteger &scheme) {
+    if (m * scheme.m > MAX_RANK)
+        return false;
+
+    int sizes[3];
+
+    for (int i = 0; i < 3; i++)
+        sizes[i] = n[i] * scheme.n[i];
+
+    for (int i = 0; i < 3; i++) {
+        if (sizes[i] > MAX_EXTENSION_N)
+            return false;
+
+        if (sizes[i] * sizes[(i + 1) % 3] > MAX_MATRIX_ELEMENTS)
+            return false;
+    }
+
+    product(scheme);
     return true;
 }
 

@@ -17,10 +17,10 @@ const int MAX_PAIRS = std::min(MAX_RANK * (MAX_RANK - 1) / 2, 1800);
 const int MIN_PROJECT_N = 2;
 
 // extension limit
-const int MAX_EXTENSION_N = 10;
+const int MAX_EXTENSION_N = 16;
 
 // sandwiching limit
-const int MAX_SANDWICHING_N = 10;
+const int MAX_SANDWICHING_N = 16;
 const int MAX_SANDWICHING_ELEMENTS = MAX_SANDWICHING_N * MAX_SANDWICHING_N;
 
 #ifdef SCHEME_INTEGER

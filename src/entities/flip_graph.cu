@@ -18,25 +18,25 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2bestRank[getKey(n1, n2, n3)] = n1 * n2 * n3;
 
     n2knownRanks = {
-        {"2x2x2", 7}, {"2x2x3", 11}, {"2x2x4", 14}, {"2x2x5", 18}, {"2x2x6", 21}, {"2x2x7", 25}, {"2x2x8", 28}, {"2x2x9", 32}, {"2x2x10", 35},
-        {"2x3x3", 15}, {"2x3x4", 20}, {"2x3x5", 25}, {"2x3x6", 30}, {"2x3x7", 35}, {"2x3x8", 40}, {"2x3x9", 45}, {"2x3x10", 50},
-        {"2x4x4", 26}, {"2x4x5", 32}, {"2x4x6", 39}, {"2x4x7", 45}, {"2x4x8", 51}, {"2x4x9", 59}, {"2x4x10", 64},
-        {"2x5x5", 40}, {"2x5x6", 47}, {"2x5x7", 55}, {"2x5x8", 63}, {"2x5x9", 72}, {"2x5x10", 79},
+        {"2x2x2", 7}, {"2x2x3", 11}, {"2x2x4", 14}, {"2x2x5", 18}, {"2x2x6", 21}, {"2x2x7", 25}, {"2x2x8", 28}, {"2x2x9", 32}, {"2x2x10", 35}, {"2x2x11", 39}, {"2x2x12", 42}, {"2x2x13", 46}, {"2x2x14", 49}, {"2x2x15", 53}, {"2x2x16", 56},
+        {"2x3x3", 15}, {"2x3x4", 20}, {"2x3x5", 25}, {"2x3x6", 30}, {"2x3x7", 35}, {"2x3x8", 40}, {"2x3x9", 45}, {"2x3x10", 50}, {"2x3x11", 55}, {"2x3x12", 60}, {"2x3x13", 65}, {"2x3x14", 70}, {"2x3x15", 75}, {"2x3x16", 80},
+        {"2x4x4", 26}, {"2x4x5", 32}, {"2x4x6", 39}, {"2x4x7", 45}, {"2x4x8", 51}, {"2x4x9", 59}, {"2x4x10", 64}, {"2x4x11", 71}, {"2x4x12", 77}, {"2x4x13", 83}, {"2x4x14", 90}, {"2x4x15", 96}, {"2x4x16", 102},
+        {"2x5x5", 40}, {"2x5x6", 47}, {"2x5x7", 55}, {"2x5x8", 63}, {"2x5x9", 72}, {"2x5x10", 79}, {"2x5x11", 87}, {"2x5x12", 94},
         {"2x6x6", 56}, {"2x6x7", 66}, {"2x6x8", 75}, {"2x6x9", 86}, {"2x6x10", 94},
         {"2x7x7", 76}, {"2x7x8", 88}, {"2x7x9", 99},
         {"2x8x8", 100},
-        {"3x3x3", 23}, {"3x3x4", 29}, {"3x3x5", 36}, {"3x3x6", 40}, {"3x3x7", 49}, {"3x3x8", 55}, {"3x3x9", 63}, {"3x3x10", 69},
-        {"3x4x4", 38}, {"3x4x5", 47}, {"3x4x6", 54}, {"3x4x7", 63}, {"3x4x8", 73}, {"3x4x9", 83}, {"3x4x10", 92},
-        {"3x5x5", 58}, {"3x5x6", 68}, {"3x5x7", 79}, {"3x5x8", 90}, {"3x5x9", 104}, {"3x5x10", 115},
+        {"3x3x3", 23}, {"3x3x4", 29}, {"3x3x5", 36}, {"3x3x6", 40}, {"3x3x7", 49}, {"3x3x8", 55}, {"3x3x9", 63}, {"3x3x10", 69}, {"3x3x11", 76}, {"3x3x12", 80}, {"3x3x13", 89}, {"3x3x14", 95}, {"3x3x15", 103}, {"3x3x16", 109},
+        {"3x4x4", 38}, {"3x4x5", 47}, {"3x4x6", 54}, {"3x4x7", 63}, {"3x4x8", 73}, {"3x4x9", 83}, {"3x4x10", 92}, {"3x4x11", 101}, {"3x4x12", 108}, {"3x4x13", 117}, {"3x4x14", 126}, {"3x4x15", 136}, {"3x4x16", 146},
+        {"3x5x5", 58}, {"3x5x6", 68}, {"3x5x7", 79}, {"3x5x8", 90}, {"3x5x9", 104}, {"3x5x10", 115}, {"3x5x11", 126}, {"3x5x12", 136},
         {"3x6x6", 80}, {"3x6x7", 94}, {"3x6x8", 108}, {"3x6x9", 120}, {"3x6x10", 134},
         {"3x7x7", 111}, {"3x7x8", 126}, {"3x7x9", 142},
         {"3x8x8", 145},
-        {"4x4x4", 48}, {"4x4x5", 61}, {"4x4x6", 73}, {"4x4x7", 85}, {"4x4x8", 96}, {"4x4x9", 104}, {"4x4x10", 120},
-        {"4x5x5", 76}, {"4x5x6", 90}, {"4x5x7", 104}, {"4x5x8", 118}, {"4x5x9", 136}, {"4x5x10", 151},
+        {"4x4x4", 48}, {"4x4x5", 61}, {"4x4x6", 73}, {"4x4x7", 85}, {"4x4x8", 96}, {"4x4x9", 104}, {"4x4x10", 120}, {"4x4x11", 130}, {"4x4x12", 142}, {"4x4x13", 152}, {"4x4x14", 165}, {"4x4x15", 177}, {"4x4x16", 189},
+        {"4x5x5", 76}, {"4x5x6", 90}, {"4x5x7", 104}, {"4x5x8", 118}, {"4x5x9", 136}, {"4x5x10", 151}, {"4x5x11", 165}, {"4x5x12", 179},
         {"4x6x6", 105}, {"4x6x7", 123}, {"4x6x8", 140}, {"4x6x9", 159}, {"4x6x10", 175},
         {"4x7x7", 144}, {"4x7x8", 164}, {"4x7x9", 186},
         {"4x8x8", 182},
-        {"5x5x5", 93}, {"5x5x6", 110}, {"5x5x7", 127}, {"5x5x8", 144}, {"5x5x9", 167}, {"5x5x10", 184},
+        {"5x5x5", 93}, {"5x5x6", 110}, {"5x5x7", 127}, {"5x5x8", 144}, {"5x5x9", 167}, {"5x5x10", 184}, {"5x5x11", 202}, {"5x5x12", 220},
         {"5x6x6", 130}, {"5x6x7", 150}, {"5x6x8", 170}, {"5x6x9", 197}, {"5x6x10", 218},
         {"5x7x7", 176}, {"5x7x8", 205}, {"5x7x9", 229},
         {"5x8x8", 230},
@@ -99,7 +99,7 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["4x7x7"] = 148;
     n2knownRanks["4x7x9"] = 189;
 
-    n2knownRanks["5x6x8"] = 176;
+    n2knownRanks["5x6x10"] = 217;
 
     n2knownRanks["5x7x7"] = 184;
     n2knownRanks["5x7x8"] = 207;
@@ -110,6 +110,9 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
 
     n2knownRanks["7x7x7"] = 261;
     n2knownRanks["7x7x8"] = 292;
+    n2knownRanks["7x7x9"] = 332;
+    n2knownRanks["7x8x8"] = 328;
+    n2knownRanks["8x8x8"] = 343;
 #else
     n2knownRanks["2x4x5"] = 33;
     n2knownRanks["2x4x10"] = 65;
@@ -143,25 +146,32 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["4x4x5"] = 60;
     n2knownRanks["4x4x8"] = 94;
     n2knownRanks["4x4x9"] = 107;
+    n2knownRanks["4x4x12"] = 141;
+    n2knownRanks["4x4x16"] = 188;
 
     n2knownRanks["4x5x5"] = 73;
     n2knownRanks["4x5x6"] = 89;
     n2knownRanks["4x5x9"] = 133;
     n2knownRanks["4x5x10"] = 146;
+    n2knownRanks["4x5x11"] = 162;
+    n2knownRanks["4x5x12"] = 177;
 
     n2knownRanks["4x7x9"] = 187;
 
     n2knownRanks["5x5x9"] = 166; // ?
     n2knownRanks["5x5x10"] = 183; // ?
+    n2knownRanks["5x5x11"] = 200; // ?
+    n2knownRanks["5x5x12"] = 217; // ?
     n2knownRanks["5x6x10"] = 217; // ?
     n2knownRanks["5x7x8"] = 206; // ?
 
-    n2knownRanks["6x6x10"] = 255; // ?
+    n2knownRanks["6x6x10"] = 252; // ?
 
     n2knownRanks["7x7x7"] = 253; // ?
     n2knownRanks["7x7x8"] = 288; // ?
-    n2knownRanks["7x8x8"] = 327; // ?
-    n2knownRanks["8x8x8"] = 364; // ?
+    n2knownRanks["7x7x9"] = 320; // ?
+    n2knownRanks["7x8x8"] = 313; // ?
+    n2knownRanks["8x8x8"] = 329; // ?
 #endif
 
     CUDA_CHECK(cudaMallocManaged(&schemes, schemesCount * sizeof(Scheme)));
@@ -472,7 +482,7 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
         if (curand_uniform(&state) * maxIterations < reduceProbability)
             scheme.tryReduce();
 
-        if (curand_uniform(&state) * maxIterations < expandProbability)
+        if (curand_uniform(&state) * maxIterations < expandProbability && scheme.m <= schemesBest[idx].m + 2)
             scheme.tryExpand(randint(1, 2, state), state);
 
         if (curand_uniform(&state) * maxIterations < sandwichingProbability)
@@ -501,22 +511,26 @@ __global__ void resizeKernel(Scheme *schemes, Scheme *schemesBest, int schemesCo
     if (curand_uniform(&state) < 0.5)
         scheme.swapSize(state);
 
-    int index = curand(&state) % schemesCount;
-    bool merged = scheme.tryMerge(schemesBest[index], state);
+    bool merged = false;
+
+    for (int i = 0; i < 3 && !merged; i++) {
+        int index = curand(&state) % schemesCount;
+        merged |= scheme.tryMerge(schemesBest[index], state);
+    }
 
     if (!merged && curand_uniform(&state) < resizeProbability) {
-        int n = scheme.n[0] + scheme.n[1] + scheme.n[2];
-
-        int nMin = 3 * MIN_PROJECT_N;
-        int nMax = 3 * MAX_EXTENSION_N;
-        int total = nMax - nMin;
-
-        int p = curand(&state) % total;
-
-        if (p < n - nMin) {
+        float p = curand_uniform(&state);
+        if (p < 0.05) {
             scheme.tryProject(state);
         }
-        else if (p & 1 || !scheme.tryProduct(state)) {
+        else if (p < 0.55) {
+            int index = curand(&state) % schemesCount;
+            scheme.tryProduct(schemesBest[index]);
+        }
+        else if (p < 0.85) {
+            scheme.tryProduct(state);
+        }
+        else {
             scheme.tryExtend(state);
         }
     }
