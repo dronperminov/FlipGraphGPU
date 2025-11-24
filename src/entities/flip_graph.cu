@@ -1,13 +1,14 @@
 #include "flip_graph.cuh"
 
 
-FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, int maxIterations, const std::string &path, const FlipGraphProbabilities &probabilities, int seed) {
+FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, int maxIterations, int plusIterations, const std::string &path, const FlipGraphProbabilities &probabilities, int seed) {
     this->n1 = n1;
     this->n2 = n2;
     this->n3 = n3;
 
     this->schemesCount = schemesCount;
     this->maxIterations = maxIterations;
+    this->plusIterations = plusIterations;
     this->path = path;
     this->probabilities = probabilities;
     this->seed = seed;
@@ -228,7 +229,7 @@ void FlipGraph::initializeNaive() {
 }
 
 void FlipGraph::randomWalk() {
-    randomWalkKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, schemesCount, maxIterations, probabilities.reduce, probabilities.expand, probabilities.sandwiching, probabilities.basis, probabilities.resize > 0);
+    randomWalkKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, schemesCount, maxIterations, plusIterations, probabilities.reduce, probabilities.expand, probabilities.sandwiching, probabilities.basis, probabilities.resize > 0);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -358,10 +359,10 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
 
             std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
 
-            int period = 1 + rand() % 10;
-            for (size_t i = 0; i < indices.size(); i++)
-                if (i % (iteration % period + 1) == 0)
-                    schemesBest[indices[0]].copyTo(schemes[indices[i]]);
+            // int period = 1 + rand() % 10;
+            // for (size_t i = 0; i < indices.size(); i++)
+            //     if (i % (iteration % period + 1) == 0)
+            //         schemesBest[indices[0]].copyTo(schemes[indices[i]]);
         }
 
         std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
@@ -507,7 +508,7 @@ __global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, in
     flips[idx] = 0;
 }
 
-__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, double reduceProbability, double expandProbability, double sandwichingProbability, double basisProbability, bool randomIterations) {
+__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, int plusIterations, double reduceProbability, double expandProbability, double sandwichingProbability, double basisProbability, bool randomIterations) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= schemesCount)
@@ -520,10 +521,15 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
     int iterations = randomIterations ? randint(1, maxIterations, state) : maxIterations;
 
     for (int iteration = 0; iteration < iterations; iteration++) {
+        int rank = scheme.m;
+
         if (!scheme.tryFlip(state)) {
             scheme.tryExpand(randint(1, 2, state), state);
             continue;
         }
+
+        if (scheme.m < rank)
+            flipsCount = 0;
 
         flipsCount++;
 
@@ -535,14 +541,19 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
         if (curand_uniform(&state) * maxIterations < reduceProbability)
             scheme.tryReduce();
 
-        if (curand_uniform(&state) * maxIterations < expandProbability && scheme.m <= schemesBest[idx].m + 2)
-            scheme.tryExpand(randint(1, 2, state), state);
+        if (curand_uniform(&state) * maxIterations < expandProbability && scheme.m <= schemesBest[idx].m + 2) {
+            if (scheme.tryExpand(randint(1, 2, state), state))
+                flipsCount = 0;
+        }
 
         if (curand_uniform(&state) * maxIterations < sandwichingProbability)
             scheme.sandwiching(state);
 
         if (curand_uniform(&state) * maxIterations < basisProbability)
             scheme.swapBasis(state);
+
+        if (flipsCount >= plusIterations && scheme.tryPlus(state))
+            flipsCount = 0;
     }
 
     flips[idx] = flipsCount;

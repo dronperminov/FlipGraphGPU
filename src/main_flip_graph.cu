@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
     parser.add("--sandwiching-probability", ArgType::Real, "REAL", "sandwiching edge probability (divided by max iterations)", "0.0");
     parser.add("--basis-probability", ArgType::Real, "REAL", "basis edge probability (divided by max iterations)", "0.0");
     parser.add("--resize-probability", ArgType::Real, "REAL", "project/extend edge probability", "0.2");
+    parser.add("--plus-iterations", ArgType::Natural, "INT", "number of iterations of plus call", "8000");
     parser.add("--log-period", ArgType::Natural, "INT", "period of report printing", "0");
     parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
 
@@ -34,6 +35,7 @@ int main(int argc, char* argv[]) {
     std::string path = parser.get("--path");
     std::string inputPath = parser.get("--input-path");
     int blockSize = std::stoi(parser.get("--block-size"));
+    int plusIterations = std::stoi(parser.get("--plus-iterations"));
     int logPeriod = std::stoi(parser.get("--log-period"));
     int seed = std::stoi(parser.get("--seed"));
 
@@ -47,12 +49,12 @@ int main(int argc, char* argv[]) {
     if (seed == 0)
         seed = time(0);
 
-    if (n1 * n2 > MAX_MATRIX_ELEMENTS || n2 * n3 > MAX_MATRIX_ELEMENTS || n1 * n3 > MAX_MATRIX_ELEMENTS) {
+    if (inputPath == "null" && n1 * n2 > MAX_MATRIX_ELEMENTS || n2 * n3 > MAX_MATRIX_ELEMENTS || n1 * n3 > MAX_MATRIX_ELEMENTS) {
         std::cout << "Error sizes, please increase MAX_MATRIX_ELEMENTS (now: " << MAX_MATRIX_ELEMENTS << ")" << std::endl;
         return 0;
     }
 
-    if (n1 * n2 * n3 > MAX_RANK) {
+    if (inputPath == "null" && n1 * n2 * n3 > MAX_RANK) {
         std::cout << "Error sizes, please increase MAX_RANK (now: " << MAX_RANK << ")" << std::endl;
         return 0;
     }
@@ -70,6 +72,7 @@ int main(int argc, char* argv[]) {
     std::cout << "- n: " << n1 << " " << n2 << " " << n3 << std::endl;
     std::cout << "- schemes count: " << schemesCount << std::endl;
     std::cout << "- max iterations: " << maxIterations << std::endl;
+    std::cout << "- plus iterations: " << plusIterations << std::endl;
     std::cout << "- path: " << path << std::endl;
     std::cout << "- block size: " << blockSize << std::endl;
     std::cout << "- probabilities:" << std::endl;
@@ -81,7 +84,7 @@ int main(int argc, char* argv[]) {
     std::cout << "- log period: " << logPeriod << std::endl;
     std::cout << "- seed: " << seed << std::endl;
 
-    FlipGraph flipGraph(n1, n2, n3, schemesCount, blockSize, maxIterations, path, probabilities, seed);
+    FlipGraph flipGraph(n1, n2, n3, schemesCount, blockSize, maxIterations, plusIterations, path, probabilities, seed);
 
     if (inputPath != "null") {
         std::ifstream f(inputPath);

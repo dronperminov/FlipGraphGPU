@@ -33,6 +33,7 @@ class FlipGraph {
 
     int schemesCount;
     int maxIterations;
+    int plusIterations;
     std::string path;
 
     FlipGraphProbabilities probabilities;
@@ -50,7 +51,7 @@ class FlipGraph {
     std::unordered_map<std::string, int> n2bestRank;
     std::unordered_map<std::string, int> n2knownRanks;
 public:
-    FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, int maxIterations, const std::string &path, const FlipGraphProbabilities &probabilities, int seed);
+    FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, int maxIterations, int plusIterations, const std::string &path, const FlipGraphProbabilities &probabilities, int seed);
 
     bool initializeFromFile(std::istream &f);
     void initializeNaive();
@@ -77,5 +78,5 @@ __global__ void initializeNaiveKernel(Scheme *schemes, int schemesCount, int n1,
 __global__ void initializeCopyKernel(Scheme *schemes, int schemesCount, int count);
 __global__ void initializeResizeKernel(Scheme *schemes, int schemesCount, int n1, int n2, int n3, curandState *states);
 __global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, int n1, int n2, int n3, int schemesCount);
-__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, double reduceProbability, double expandProbability, double sandwichingProbability, double basisProbability, bool randomIterations);
+__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, int plusIterations, double reduceProbability, double expandProbability, double sandwichingProbability, double basisProbability, bool randomIterations);
 __global__ void resizeKernel(Scheme *schemes, Scheme *schemesBest, int schemesCount, curandState *states, double resizeProbability);
