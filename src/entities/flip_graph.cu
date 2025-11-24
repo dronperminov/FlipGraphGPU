@@ -37,11 +37,11 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
         {"4x7x7", 144}, {"4x7x8", 164}, {"4x7x9", 186},
         {"4x8x8", 182},
         {"5x5x5", 93}, {"5x5x6", 110}, {"5x5x7", 127}, {"5x5x8", 144}, {"5x5x9", 167}, {"5x5x10", 184}, {"5x5x11", 202}, {"5x5x12", 220},
-        {"5x6x6", 130}, {"5x6x7", 150}, {"5x6x8", 170}, {"5x6x9", 197}, {"5x6x10", 218},
+        {"5x6x6", 130}, {"5x6x7", 150}, {"5x6x8", 170}, {"5x6x9", 197}, {"5x6x10", 217},
         {"5x7x7", 176}, {"5x7x8", 205}, {"5x7x9", 229},
         {"5x8x8", 230},
         {"6x6x6", 153}, {"6x6x7", 183}, {"6x6x8", 203}, {"6x6x9", 225}, {"6x6x10", 247},
-        {"6x7x7", 215}, {"6x7x8", 239}, {"6x7x9", 270},
+        {"6x7x7", 215}, {"6x7x8", 239}, {"6x7x9", 269},
         {"6x8x8", 266},
         {"7x7x7", 249}, {"7x7x8", 277}, {"7x7x9", 315},
         {"7x8x8", 306},
@@ -94,24 +94,20 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
 
     n2knownRanks["4x5x9"] = 137;
 
-    n2knownRanks["4x6x9"] = 162;
+    n2knownRanks["4x6x9"] = 160;
 
-    n2knownRanks["4x7x7"] = 148;
-    n2knownRanks["4x7x9"] = 189;
+    n2knownRanks["4x7x7"] = 147;
+    n2knownRanks["4x7x9"] = 188;
 
-    n2knownRanks["5x6x10"] = 217;
-
-    n2knownRanks["5x7x7"] = 184;
-    n2knownRanks["5x7x8"] = 207;
+    n2knownRanks["5x7x8"] = 206;
 
     n2knownRanks["6x6x7"] = 185;
     n2knownRanks["6x6x9"] = 225;
-    n2knownRanks["6x7x9"] = 270;
 
-    n2knownRanks["7x7x7"] = 261;
-    n2knownRanks["7x7x8"] = 292;
-    n2knownRanks["7x7x9"] = 332;
-    n2knownRanks["7x8x8"] = 328;
+    n2knownRanks["7x7x7"] = 250;
+    n2knownRanks["7x7x8"] = 279;
+    n2knownRanks["7x7x9"] = 316;
+    n2knownRanks["7x8x8"] = 310;
     n2knownRanks["8x8x8"] = 343;
 #else
     n2knownRanks["2x4x5"] = 33;
@@ -126,9 +122,11 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["2x7x9"] = 101; // ?
 
     n2knownRanks["3x3x6"] = 42; // ?
-    n2knownRanks["3x3x8"] = 57; // ?
+    n2knownRanks["3x3x8"] = 56; // ?
     n2knownRanks["3x3x9"] = 64; // ?
     n2knownRanks["3x3x10"] = 71; // ?
+    n2knownRanks["3x3x15"] = 105; // ?
+    n2knownRanks["3x3x16"] = 112; // ?
 
     n2knownRanks["3x4x7"] = 64; // ?
     n2knownRanks["3x4x8"] = 74; // ?
@@ -162,15 +160,14 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["5x5x10"] = 183; // ?
     n2knownRanks["5x5x11"] = 200; // ?
     n2knownRanks["5x5x12"] = 217; // ?
-    n2knownRanks["5x6x10"] = 217; // ?
     n2knownRanks["5x7x8"] = 206; // ?
 
     n2knownRanks["6x6x10"] = 252; // ?
 
-    n2knownRanks["7x7x7"] = 253; // ?
-    n2knownRanks["7x7x8"] = 288; // ?
-    n2knownRanks["7x7x9"] = 320; // ?
-    n2knownRanks["7x8x8"] = 313; // ?
+    n2knownRanks["7x7x7"] = 248; // ?
+    n2knownRanks["7x7x8"] = 275; // ?
+    n2knownRanks["7x7x9"] = 313; // ?
+    n2knownRanks["7x8x8"] = 302; // ?
     n2knownRanks["8x8x8"] = 329; // ?
 #endif
 
@@ -179,11 +176,15 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     CUDA_CHECK(cudaMallocManaged(&bestRanks, schemesCount * sizeof(int)));
     CUDA_CHECK(cudaMallocManaged(&flips, schemesCount * sizeof(int)));
     CUDA_CHECK(cudaMallocManaged(&states, schemesCount * sizeof(curandState)));
+
+    initializeRandomStatesKernel<<<numBlocks, blockSize>>>(states, schemesCount, seed);
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 void FlipGraph::initialize() {
     std::cout << "Start main initialization" << std::endl;
-    initializeSchemesKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, n1, n2, n3, schemesCount, seed);
+    initializeSchemesKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, n1, n2, n3, schemesCount);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -197,15 +198,23 @@ bool FlipGraph::initializeFromFile(std::istream &f) {
     f >> count;
     std::cout << "Start reading " << std::min(count, schemesCount) << " schemes" << std::endl;
 
-    for (int i = 0; i < count && i < schemesCount; i++)
+    for (int i = 0; i < count && i < schemesCount; i++) {
         if (!schemes[i].read(f, false))
             return false;
 
+        while (schemes[i].tryReduce())
+            ;
+    }
+
     std::cout << "Start copying " << std::min(count, schemesCount) << " readed schemes" << std::endl;
     initializeCopyKernel<<<numBlocks, blockSize>>>(schemes, schemesCount, count);
-
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
+
+    // std::cout << "Start resizing " << schemesCount << " schemes to " << n1 << "x" << n2 << "x" << n3 << std::endl;
+    // initializeResizeKernel<<<numBlocks, blockSize>>>(schemes, schemesCount, n1, n2, n3, states);
+    // CUDA_CHECK(cudaGetLastError());
+    // CUDA_CHECK(cudaDeviceSynchronize());
     return true;
 }
 
@@ -349,10 +358,10 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
 
             std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
 
-            int period = 1 + rand() % 10;
-            for (size_t i = 0; i < indices.size(); i++)
-                if (i % (iteration % period + 1) == 0)
-                    schemesBest[indices[0]].copyTo(schemes[indices[i]]);
+            // int period = 1 + rand() % 10;
+            // for (size_t i = 0; i < indices.size(); i++)
+            //     if (i % (iteration % period + 1) == 0)
+            //         schemesBest[indices[0]].copyTo(schemes[indices[i]]);
         }
 
         std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
@@ -410,7 +419,7 @@ FlipGraph::~FlipGraph() {
         cudaFree(states);
         states = nullptr;
     }
-    
+
     if (bestRanks) {
         cudaFree(bestRanks);
         bestRanks = nullptr;
@@ -423,6 +432,14 @@ FlipGraph::~FlipGraph() {
 }
 
 /************************************************************************************ kernels ************************************************************************************/
+__global__ void initializeRandomStatesKernel(curandState *states, int schemesCount, int seed) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= schemesCount)
+        return;
+
+    curand_init(seed, idx, 0, &states[idx]);
+}
+
 __global__ void initializeNaiveKernel(Scheme *schemes, int schemesCount, int n1, int n2, int n3) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < schemesCount)
@@ -442,14 +459,50 @@ __global__ void initializeCopyKernel(Scheme *schemes, int schemesCount, int coun
     }
 }
 
-__global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int n1, int n2, int n3, int schemesCount, int seed) {
+__global__ void initializeResizeKernel(Scheme *schemes, int schemesCount, int n1, int n2, int n3, curandState *states) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= schemesCount)
+        return;
+
+    Scheme &scheme = schemes[idx];
+    curandState& state = states[idx];
+
+    int n[3] = {n1, n2, n3};
+
+    while (scheme.n[0] != n[0] || scheme.n[1] != n[1] || scheme.n[2] != n[2]) {
+        int pmax = 0;
+
+        if (scheme.n[1] > scheme.n[pmax])
+            pmax = 1;
+
+        if (scheme.n[2] > scheme.n[pmax])
+            pmax = 2;
+
+        int p = pmax;
+
+        if (scheme.n[pmax] <= n[pmax]) {
+            do {
+                p = curand(&state) % 3;
+            } while (scheme.n[p] == n[p]);
+        }
+
+        if (scheme.n[p] > n[p])
+            scheme.project(p, curand(&state) % scheme.n[p]);
+        else if (scheme.n[p] * 2 <= n[p] && curand(&state) & 1 && scheme.isValidProduct(p))
+            scheme.product(p);
+        else if (scheme.isValidExtension(p))
+            scheme.extend(p);
+        else
+            break;
+    }
+}
+
+__global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, int n1, int n2, int n3, int schemesCount) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= schemesCount)
         return;
 
     schemes[idx].copyTo(schemesBest[idx], false);
-    curand_init(seed, idx, 0, &states[idx]);
-
     bestRanks[idx] = n1 * n2 * n3;
     flips[idx] = 0;
 }

@@ -35,6 +35,7 @@ struct SchemeZ2 {
     __device__ __host__ bool isValidProject(int i, int minN = MIN_PROJECT_N) const;
     __device__ __host__ bool isValidExtension(int i, int maxN = MAX_EXTENSION_N) const;
     __device__ __host__ bool isValidProduct(int i, int maxN = MAX_EXTENSION_N) const;
+    __device__ __host__ bool isValidMerge(int i, const SchemeZ2 &scheme) const;
 
     __device__ bool tryFlip(curandState &state, bool checkReduce = true);
     __device__ bool tryPlus(curandState &state);
@@ -51,6 +52,11 @@ struct SchemeZ2 {
     __device__ void sandwiching(curandState &state);
     __device__ void swapBasis(curandState &state);
     __device__ void swapSize(curandState &state);
+
+    __device__ __host__ void merge(const SchemeZ2 &scheme, int p);
+    __device__ __host__ void project(int p, int q);
+    __device__ __host__ void extend(int p);
+    __device__ __host__ void product(int p);
 
     void save(const std::string &path);
 private:
@@ -79,10 +85,6 @@ private:
     __device__ __host__ void split(int i, int j, int k, int index, const T a1);
     __device__ __host__ void reduce(int i, int index1, int index2);
     __device__ __host__ void reduceGauss(int i, int *combination, int combinationSize);
-    __device__ __host__ void project(int p, int q);
-    __device__ __host__ void extend(int p);
-    __device__ __host__ void product(int p);
-    __device__ __host__ void merge(const SchemeZ2 &scheme, int p);
     __device__ __host__ void product(const SchemeZ2 &scheme);
     __device__ __host__ void swapBasisRows(int i1, int i2);
     __device__ __host__ void swapBasisColumns(int j1, int j2);

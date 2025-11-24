@@ -300,6 +300,21 @@ __device__ __host__ bool SchemeInteger::isValidProduct(int i, int maxN) const {
     return true;
 }
 
+__device__ __host__ bool SchemeInteger::isValidMerge(int i, const SchemeInteger &scheme) const {
+    if (m + scheme.m > MAX_RANK)
+        return false;
+
+    int j = (i + 1) % 3;
+    int k = (i + 2) % 3;
+
+    int eq2 = n[j] == scheme.n[j];
+    int eq3 = n[k] == scheme.n[k];
+
+    int n1 = n[i] + scheme.n[i];
+
+    return n1 <= MAX_EXTENSION_N && n1 * n[j] <= MAX_MATRIX_ELEMENTS && n1 * n[k] <= MAX_MATRIX_ELEMENTS && eq2 && eq3;
+}
+
 __device__ __host__ bool SchemeInteger::fixSigns() {
     bool changed = false;
 

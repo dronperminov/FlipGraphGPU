@@ -27,9 +27,10 @@ struct SchemeInteger {
     __host__ bool read(std::istream &is, int n1, int n2, int n3, int m, bool checkValidity = true);
 
     __device__ __host__ int getComplexity() const;
-    __device__ __host__ bool isValidProject(int i, int minN) const;
-    __device__ __host__ bool isValidExtension(int i, int maxN) const;
-    __device__ __host__ bool isValidProduct(int i, int maxN) const;
+    __device__ __host__ bool isValidProject(int i, int minN = MIN_PROJECT_N) const;
+    __device__ __host__ bool isValidExtension(int i, int maxN = MAX_EXTENSION_N) const;
+    __device__ __host__ bool isValidProduct(int i, int maxN = MAX_EXTENSION_N) const;
+    __device__ __host__ bool isValidMerge(int i, const SchemeInteger &scheme) const;
 
     __device__ bool tryFlip(curandState &state, bool checkReduce = true);
     __device__ bool tryPlus(curandState &state);
@@ -45,6 +46,11 @@ struct SchemeInteger {
     __device__ void sandwiching(curandState &state);
     __device__ void swapBasis(curandState &state);
     __device__ void swapSize(curandState &state);
+
+    __device__ __host__ void merge(const SchemeInteger &scheme, int p);
+    __device__ __host__ void project(int p, int q);
+    __device__ __host__ void extend(int p);
+    __device__ __host__ void product(int p);
 
     void save(const std::string &path);
     void show() const;
@@ -66,10 +72,6 @@ private:
     __device__ __host__ void split(int i, int j, int k, int index, const Addition& addition);
     __device__ __host__ void reduceAdd(int i, int index1, int index2);
     __device__ __host__ void reduceSub(int i, int index1, int index2);
-    __device__ __host__ void project(int p, int q);
-    __device__ __host__ void extend(int p);
-    __device__ __host__ void product(int p);
-    __device__ __host__ void merge(const SchemeInteger &scheme, int p);
     __device__ __host__ void product(const SchemeInteger &scheme);
     __device__ __host__ void swapBasisRows(int i1, int i2);
     __device__ __host__ void swapBasisColumns(int j1, int j2);

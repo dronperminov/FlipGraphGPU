@@ -279,6 +279,21 @@ __device__ __host__ bool SchemeZ2::isValidProduct(int i, int maxN) const {
     return true;
 }
 
+__device__ __host__ bool SchemeZ2::isValidMerge(int i, const SchemeZ2 &scheme) const {
+    if (m + scheme.m > MAX_RANK)
+        return false;
+
+    int j = (i + 1) % 3;
+    int k = (i + 2) % 3;
+
+    int eq2 = n[j] == scheme.n[j];
+    int eq3 = n[k] == scheme.n[k];
+
+    int n1 = n[i] + scheme.n[i];
+
+    return n1 <= MAX_EXTENSION_N && n1 * n[j] <= MAX_MATRIX_ELEMENTS && n1 * n[k] <= MAX_MATRIX_ELEMENTS && eq2 && eq3;
+}
+
 /******************************************************** helpers ********************************************************/
 __device__ ReduceGaussCandidate SchemeZ2::getReduceGaussCandidate(curandState &state) const {
     int permutation[3];
