@@ -57,6 +57,15 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    std::cout << "Config:" << std::endl;
+    std::cout << "- working ring: " << ring << std::endl;
+    std::cout << "- max matrix elements: " << MAX_MATRIX_ELEMENTS << std::endl;
+    std::cout << "- max scheme rank: " << MAX_RANK << std::endl;
+    std::cout << "- min project size: " << MIN_PROJECT_N << std::endl;
+    std::cout << "- max extension size: " << MAX_EXTENSION_N << std::endl;
+    std::cout << "- max flips pairs: " << MAX_PAIRS << std::endl;
+    std::cout << std::endl;
+
     std::cout << "Start flip graph algorithm" << std::endl;
     std::cout << "- n: " << n1 << " " << n2 << " " << n3 << std::endl;
     std::cout << "- schemes count: " << schemesCount << std::endl;

@@ -77,11 +77,18 @@ __host__ bool SchemeZ2::read(std::istream &is, bool checkValidity) {
         return false;
     }
 
+    int value;
     for (int i = 0; i < 3; i++) {
         nn[i] = n[i] * n[(i + 1) % 3];
 
-        for (int index = 0; index < m; index++)
-            is >> uvw[i][index];
+        for (int index = 0; index < m; index++) {
+            uvw[i][index] = 0;
+
+            for (int j = 0; j < nn[i]; j++) {
+                is >> value;
+                uvw[i][index] |= T(abs(value) % 2) << j;
+            }
+        }
     }
 
     initFlips();
@@ -99,11 +106,18 @@ __host__ bool SchemeZ2::read(std::istream &is, int n1, int n2, int n3, int m, bo
     this->n[2] = n3;
     this->m = m;
 
+    int value;
     for (int i = 0; i < 3; i++) {
         nn[i] = n[i] * n[(i + 1) % 3];
 
-        for (int index = 0; index < m; index++)
-            is >> uvw[i][index];
+        for (int index = 0; index < m; index++) {
+            uvw[i][index] = 0;
+
+            for (int j = 0; j < nn[i]; j++) {
+                is >> value;
+                uvw[i][index] |= T(abs(value) % 2) << j;
+            }
+        }
     }
 
     initFlips();
@@ -1108,7 +1122,7 @@ __device__ bool SchemeZ2::tryExpand(int count, curandState &state) {
     return result;
 }
 
-__device__ bool SchemeZ2::tryReduce() {
+__device__ __host__ bool SchemeZ2::tryReduce() {
     for (size_t i = 0; i < flips[0].size; i++) {
         int index1 = flips[0].index1(i);
         int index2 = flips[0].index2(i);

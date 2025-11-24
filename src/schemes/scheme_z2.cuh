@@ -42,7 +42,7 @@ struct SchemeZ2 {
     __device__ bool trySplit(curandState &state);
     __device__ bool trySplitExisted(curandState &state);
     __device__ bool tryExpand(int count, curandState &state);
-    __device__ bool tryReduce();
+    __device__ __host__ bool tryReduce();
     __device__ bool tryReduceGauss(curandState &state);
     __device__ bool tryProject(curandState &state, int minN = MIN_PROJECT_N);
     __device__ bool tryExtend(curandState &state, int maxN = MAX_EXTENSION_N);

@@ -77,5 +77,5 @@ __global__ void initializeNaiveKernel(Scheme *schemes, int schemesCount, int n1,
 __global__ void initializeCopyKernel(Scheme *schemes, int schemesCount, int count);
 __global__ void initializeResizeKernel(Scheme *schemes, int schemesCount, int n1, int n2, int n3, curandState *states);
 __global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, int n1, int n2, int n3, int schemesCount);
-__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, double reduceProbability, double expandProbability, double sandwichingProbability, double basisProbability);
+__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, double reduceProbability, double expandProbability, double sandwichingProbability, double basisProbability, bool randomIterations);
 __global__ void resizeKernel(Scheme *schemes, Scheme *schemesBest, int schemesCount, curandState *states, double resizeProbability);

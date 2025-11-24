@@ -228,7 +228,7 @@ void FlipGraph::initializeNaive() {
 }
 
 void FlipGraph::randomWalk() {
-    randomWalkKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, schemesCount, maxIterations, probabilities.reduce, probabilities.expand, probabilities.sandwiching, probabilities.basis);
+    randomWalkKernel<<<numBlocks, blockSize>>>(schemes, schemesBest, bestRanks, flips, states, schemesCount, maxIterations, probabilities.reduce, probabilities.expand, probabilities.sandwiching, probabilities.basis, probabilities.resize > 0);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -358,10 +358,10 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
 
             std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
 
-            // int period = 1 + rand() % 10;
-            // for (size_t i = 0; i < indices.size(); i++)
-            //     if (i % (iteration % period + 1) == 0)
-            //         schemesBest[indices[0]].copyTo(schemes[indices[i]]);
+            int period = 1 + rand() % 10;
+            for (size_t i = 0; i < indices.size(); i++)
+                if (i % (iteration % period + 1) == 0)
+                    schemesBest[indices[0]].copyTo(schemes[indices[i]]);
         }
 
         std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
@@ -507,7 +507,7 @@ __global__ void initializeSchemesKernel(Scheme *schemes, Scheme *schemesBest, in
     flips[idx] = 0;
 }
 
-__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, double reduceProbability, double expandProbability, double sandwichingProbability, double basisProbability) {
+__global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *bestRanks, int *flips, curandState *states, int schemesCount, int maxIterations, double reduceProbability, double expandProbability, double sandwichingProbability, double basisProbability, bool randomIterations) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= schemesCount)
@@ -517,7 +517,7 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
     curandState& state = states[idx];
     int flipsCount = flips[idx];
     int bestRank = bestRanks[idx];
-    int iterations = randint(1, maxIterations, state);
+    int iterations = randomIterations ? randint(1, maxIterations, state) : maxIterations;
 
     for (int iteration = 0; iteration < iterations; iteration++) {
         if (!scheme.tryFlip(state)) {
