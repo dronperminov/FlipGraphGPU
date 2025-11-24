@@ -901,8 +901,10 @@ __device__ bool SchemeInteger::tryPlus(curandState &state) {
     int index1 = curand(&state) % m;
     int index2 = curand(&state) % m;
 
-    while (index1 == index2)
+    while (index1 == index2 || uvw[0][index1] == uvw[0][index2] || uvw[1][index1] == uvw[1][index2] || uvw[2][index1] == uvw[2][index2]) {
+        index1 = curand(&state) % m;
         index2 = curand(&state) % m;
+    }
 
     int permutation[3];
     randomPermutation(permutation, 3, state);
