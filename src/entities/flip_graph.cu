@@ -42,7 +42,7 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
         {"5x7x7", 176}, {"5x7x8", 205}, {"5x7x9", 229},
         {"5x8x8", 230},
         {"6x6x6", 153}, {"6x6x7", 183}, {"6x6x8", 203}, {"6x6x9", 225}, {"6x6x10", 247},
-        {"6x7x7", 215}, {"6x7x8", 239}, {"6x7x9", 269},
+        {"6x7x7", 215}, {"6x7x8", 239}, {"6x7x9", 268},
         {"6x8x8", 266},
         {"7x7x7", 249}, {"7x7x8", 277}, {"7x7x9", 315},
         {"7x8x8", 306},
@@ -51,60 +51,72 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
 
 #ifdef SCHEME_INTEGER
     n2knownRanks["2x4x5"] = 33;
-
+    n2knownRanks["2x4x10"] = 65;
+    n2knownRanks["2x4x13"] = 84;
     n2knownRanks["2x5x7"] = 57;
     n2knownRanks["2x5x8"] = 65;
-
+    n2knownRanks["2x5x10"] = 80;
     n2knownRanks["2x6x6"] = 57;
     n2knownRanks["2x6x7"] = 68;
     n2knownRanks["2x6x8"] = 77;
-    n2knownRanks["2x6x9"] = 86;
-
     n2knownRanks["2x7x7"] = 77;
     n2knownRanks["2x7x8"] = 90;
     n2knownRanks["2x7x9"] = 102;
-
     n2knownRanks["3x3x6"] = 44;
     n2knownRanks["3x3x7"] = 51;
     n2knownRanks["3x3x8"] = 58;
     n2knownRanks["3x3x9"] = 65;
-
+    n2knownRanks["3x3x10"] = 72;
+    n2knownRanks["3x3x11"] = 80;
+    n2knownRanks["3x3x12"] = 87;
+    n2knownRanks["3x3x13"] = 94;
+    n2knownRanks["3x3x14"] = 101;
+    n2knownRanks["3x3x15"] = 108;
+    n2knownRanks["3x3x16"] = 116;
     n2knownRanks["3x4x6"] = 57;
-    n2knownRanks["3x4x7"] = 66;
+    n2knownRanks["3x4x7"] = 64;
     n2knownRanks["3x4x8"] = 74;
     n2knownRanks["3x4x9"] = 85;
-
+    n2knownRanks["3x4x10"] = 94;
+    n2knownRanks["3x4x11"] = 103;
+    n2knownRanks["3x4x12"] = 112;
+    n2knownRanks["3x4x13"] = 121;
+    n2knownRanks["3x4x14"] = 131;
+    n2knownRanks["3x4x15"] = 140;
+    n2knownRanks["3x4x16"] = 148;
     n2knownRanks["3x5x6"] = 70;
     n2knownRanks["3x5x7"] = 83;
     n2knownRanks["3x5x8"] = 94;
     n2knownRanks["3x5x9"] = 105;
-
+    n2knownRanks["3x5x10"] = 116;
+    n2knownRanks["3x5x11"] = 128;
+    n2knownRanks["3x5x12"] = 140;
     n2knownRanks["3x6x6"] = 85;
     n2knownRanks["3x6x7"] = 100;
     n2knownRanks["3x6x8"] = 113;
     n2knownRanks["3x6x9"] = 127;
-
+    n2knownRanks["3x6x10"] = 140;
     n2knownRanks["3x7x7"] = 117;
     n2knownRanks["3x7x8"] = 132;
     n2knownRanks["3x7x9"] = 149;
-
     n2knownRanks["3x8x8"] = 148;
-
     n2knownRanks["4x4x4"] = 49;
     n2knownRanks["4x4x9"] = 110;
-
+    n2knownRanks["4x4x10"] = 122;
+    n2knownRanks["4x4x11"] = 134;
+    n2knownRanks["4x4x12"] = 145;
+    n2knownRanks["4x4x13"] = 157;
+    n2knownRanks["4x4x14"] = 169;
+    n2knownRanks["4x4x15"] = 181;
+    n2knownRanks["4x4x16"] = 192;
     n2knownRanks["4x5x9"] = 137;
-
     n2knownRanks["4x6x9"] = 160;
-
-    n2knownRanks["4x7x7"] = 147;
+    n2knownRanks["4x7x7"] = 146;
     n2knownRanks["4x7x9"] = 188;
-
     n2knownRanks["5x7x8"] = 206;
-
+    n2knownRanks["5x7x9"] = 231;
     n2knownRanks["6x6x7"] = 185;
-    n2knownRanks["6x6x9"] = 225;
-
+    n2knownRanks["6x6x10"] = 252;
     n2knownRanks["7x7x7"] = 250;
     n2knownRanks["7x7x8"] = 279;
     n2knownRanks["7x7x9"] = 316;
@@ -113,63 +125,63 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
 #else
     n2knownRanks["2x4x5"] = 33;
     n2knownRanks["2x4x10"] = 65;
-
-    n2knownRanks["2x5x7"] = 57; // ?
-    n2knownRanks["2x5x8"] = 65; // ?
-    n2knownRanks["2x5x10"] = 80; // ?
-
-    n2knownRanks["2x6x8"] = 77; // ?
-    n2knownRanks["2x7x7"] = 77; // ?
-    n2knownRanks["2x7x9"] = 101; // ?
-
-    n2knownRanks["3x3x6"] = 42; // ?
-    n2knownRanks["3x3x8"] = 56; // ?
-    n2knownRanks["3x3x9"] = 64; // ?
-    n2knownRanks["3x3x10"] = 71; // ?
-    n2knownRanks["3x3x15"] = 105; // ?
-    n2knownRanks["3x3x16"] = 112; // ?
-
-    n2knownRanks["3x4x7"] = 64; // ?
-    n2knownRanks["3x4x8"] = 74; // ?
-
-    n2knownRanks["3x6x6"] = 84; // ?
-    n2knownRanks["3x6x7"] = 96; // ?
-    n2knownRanks["3x6x9"] = 122; // ?
-    n2knownRanks["3x6x10"] = 136; // ?
-
-    n2knownRanks["3x7x7"] = 113; // ?
-    n2knownRanks["3x7x8"] = 128; // ?
-    n2knownRanks["3x7x9"] = 143; // ?
-
+    n2knownRanks["2x4x13"] = 84;
+    n2knownRanks["2x5x7"] = 57;
+    n2knownRanks["2x5x8"] = 65;
+    n2knownRanks["2x5x10"] = 80;
+    n2knownRanks["2x6x8"] = 77;
+    n2knownRanks["2x7x7"] = 77;
+    n2knownRanks["2x7x9"] = 101;
+    n2knownRanks["3x3x6"] = 42;
+    n2knownRanks["3x3x8"] = 56;
+    n2knownRanks["3x3x9"] = 64;
+    n2knownRanks["3x3x10"] = 71;
+    n2knownRanks["3x3x11"] = 78;
+    n2knownRanks["3x3x12"] = 84;
+    n2knownRanks["3x3x13"] = 91;
+    n2knownRanks["3x3x14"] = 98;
+    n2knownRanks["3x3x15"] = 105;
+    n2knownRanks["3x3x16"] = 112;
+    n2knownRanks["3x4x7"] = 64;
+    n2knownRanks["3x4x8"] = 74;
+    n2knownRanks["3x4x13"] = 118;
+    n2knownRanks["3x4x14"] = 128;
+    n2knownRanks["3x4x15"] = 137;
+    n2knownRanks["3x6x6"] = 84;
+    n2knownRanks["3x6x7"] = 96;
+    n2knownRanks["3x6x9"] = 122;
+    n2knownRanks["3x6x10"] = 136;
+    n2knownRanks["3x7x7"] = 113;
+    n2knownRanks["3x7x8"] = 128;
+    n2knownRanks["3x7x9"] = 143;
     n2knownRanks["4x4x4"] = 47;
     n2knownRanks["4x4x5"] = 60;
     n2knownRanks["4x4x8"] = 94;
     n2knownRanks["4x4x9"] = 107;
+    n2knownRanks["4x4x11"] = 132;
     n2knownRanks["4x4x12"] = 141;
+    n2knownRanks["4x4x13"] = 154;
+    n2knownRanks["4x4x14"] = 167;
+    n2knownRanks["4x4x15"] = 179;
     n2knownRanks["4x4x16"] = 188;
-
     n2knownRanks["4x5x5"] = 73;
     n2knownRanks["4x5x6"] = 89;
     n2knownRanks["4x5x9"] = 133;
     n2knownRanks["4x5x10"] = 146;
     n2knownRanks["4x5x11"] = 162;
     n2knownRanks["4x5x12"] = 177;
-
     n2knownRanks["4x7x9"] = 187;
-
-    n2knownRanks["5x5x9"] = 166; // ?
-    n2knownRanks["5x5x10"] = 183; // ?
-    n2knownRanks["5x5x11"] = 200; // ?
-    n2knownRanks["5x5x12"] = 217; // ?
-    n2knownRanks["5x7x8"] = 206; // ?
-
-    n2knownRanks["6x6x10"] = 252; // ?
-
-    n2knownRanks["7x7x7"] = 248; // ?
-    n2knownRanks["7x7x8"] = 275; // ?
-    n2knownRanks["7x7x9"] = 313; // ?
-    n2knownRanks["7x8x8"] = 302; // ?
-    n2knownRanks["8x8x8"] = 329; // ?
+    n2knownRanks["5x5x9"] = 166;
+    n2knownRanks["5x5x10"] = 183;
+    n2knownRanks["5x5x11"] = 200;
+    n2knownRanks["5x5x12"] = 217;
+    n2knownRanks["5x7x8"] = 206;
+    n2knownRanks["6x6x10"] = 252;
+    n2knownRanks["7x7x7"] = 248;
+    n2knownRanks["7x7x8"] = 275;
+    n2knownRanks["7x7x9"] = 313;
+    n2knownRanks["7x8x8"] = 302;
+    n2knownRanks["8x8x8"] = 329;
 #endif
 
     CUDA_CHECK(cudaMallocManaged(&schemes, schemesCount * sizeof(Scheme)));
