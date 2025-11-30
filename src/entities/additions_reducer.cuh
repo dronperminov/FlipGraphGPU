@@ -24,6 +24,7 @@ class AdditionsReducer {
     int expressionsCount;
     int realVariables;
     int freshVariables;
+    int naiveAdditions;
 
     __device__ __host__ void updateSubexpressions();
     __device__ __host__ void replaceSubexpression(const Pair &subexpression);
@@ -39,8 +40,11 @@ public:
     __device__ __host__ bool addExpression(int *values, int count);
     __device__ void reduce(int mode, curandState &state);
     __device__ __host__ void copyFrom(const AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength> &reducer);
+    __device__ __host__ void clear();
 
     __device__ __host__ int getAdditions() const;
+    __device__ __host__ int getNaiveAdditions() const;
+    __device__ __host__ int getFreshVars() const;
 
     void show() const;
     void write(std::ostream &os, const std::string &name, const std::string &indent) const;
@@ -51,6 +55,7 @@ __device__ __host__ AdditionsReducer<maxExpressionsCount, maxVariablesCount, max
     expressionsCount = 0;
     realVariables = 0;
     freshVariables = 0;
+    naiveAdditions = 0;
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
@@ -70,6 +75,7 @@ __device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount
         realVariables = count;
 
     expressionSizes[expressionsCount++] = size;
+    naiveAdditions += size - 1;
     return true;
 }
 
@@ -109,6 +115,14 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
+__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::clear() {
+    expressionsCount = 0;
+    realVariables = 0;
+    freshVariables = 0;
+    naiveAdditions = 0;
+}
+
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
 __device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getAdditions() const {
     int additions = freshVariables;
 
@@ -116,6 +130,16 @@ __device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount,
         additions += expressionSizes[i] - 1;
 
     return additions;
+}
+
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
+__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getNaiveAdditions() const {
+    return naiveAdditions;
+}
+
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
+__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getFreshVars() const {
+    return freshVariables;
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>

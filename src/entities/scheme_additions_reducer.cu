@@ -1,7 +1,9 @@
 #include "scheme_additions_reducer.cuh"
 
-SchemeAdditionsReducer::SchemeAdditionsReducer(int count, int seed, int blockSize, const std::string &outputPath, int topCount) {
+SchemeAdditionsReducer::SchemeAdditionsReducer(int count, int schemesCount, int maxFlips, int seed, int blockSize, const std::string &outputPath, int topCount) {
     this->count = count;
+    this->schemesCount = schemesCount;
+    this->maxFlips = maxFlips;
     this->seed = seed;
     this->blockSize = blockSize;
     this->numBlocks = (count + blockSize - 1) / blockSize;
@@ -19,6 +21,7 @@ SchemeAdditionsReducer::SchemeAdditionsReducer(int count, int seed, int blockSiz
     CUDA_CHECK(cudaMallocManaged(&reducersU, (count + 2) * sizeof(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES>)));
     CUDA_CHECK(cudaMallocManaged(&reducersV, (count + 2) * sizeof(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES>)));
     CUDA_CHECK(cudaMallocManaged(&reducersW, (count + 2) * sizeof(AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES>)));
+    CUDA_CHECK(cudaMallocManaged(&schemes, (count + 1) * sizeof(SchemeInteger)));
     CUDA_CHECK(cudaMallocManaged(&states, count * sizeof(curandState)));
 }
 
@@ -36,50 +39,11 @@ bool SchemeAdditionsReducer::read(std::ifstream &f) {
         return false;
     }
 
-    int u[MAX_UV_EXPRESSIONS][MAX_REAL_UV_VARIABLES];
-    int v[MAX_UV_EXPRESSIONS][MAX_REAL_UV_VARIABLES];
-    int w[MAX_W_EXPRESSIONS][MAX_REAL_W_VARIABLES];
-
-    for (int index = 0; index < m; index++)
-        for (int i = 0; i < n1 * n2; i++)
-            f >> u[index][i];
-
-    for (int index = 0; index < m; index++)
-        for (int i = 0; i < n2 * n3; i++)
-            f >> v[index][i];
-
-    for (int index = 0; index < m; index++)
-        for (int i = 0; i < n3 * n1; i++)
-            f >> w[i][index];
-
-    bool correct = true;
-
-    for (int i = 0; i < m && correct; i++)
-        correct &= reducersU[count].addExpression(u[i], n1 * n2);
-
-    for (int i = 0; i < m && correct; i++)
-        correct &= reducersV[count].addExpression(v[i], n2 * n3);
-
-    for (int i = 0; i < n3 * n1 && correct; i++)
-        correct &= reducersW[count].addExpression(w[i], m);
-
-    if (!correct) {
-        std::cout << "Error: available only ternary expressions" << std::endl;
+    if (!schemes[0].read(f, n1, n2, n3, m)) {
+        std::cout << "Error: readed scheme is invalid" << std::endl;
         return false;
     }
 
-    bestAdditions[0] = reducersU[count].getAdditions();
-    bestAdditions[1] = reducersV[count].getAdditions();
-    bestAdditions[2] = reducersW[count].getAdditions();
-
-    reducersU[count + 1].copyFrom(reducersU[count]);
-    reducersV[count + 1].copyFrom(reducersV[count]);
-    reducersW[count + 1].copyFrom(reducersW[count]);
-
-    naiveAdditions = bestAdditions[0] + bestAdditions[1] + bestAdditions[2];
-    reducedAdditions = naiveAdditions;
-
-    std::cout << "Readed scheme uses " << bestAdditions[0] << " + " << bestAdditions[1] << " + " << bestAdditions[2] << " = " << naiveAdditions << " additions [naive]" << std::endl;
     return true;
 }
 
@@ -126,6 +90,11 @@ SchemeAdditionsReducer::~SchemeAdditionsReducer() {
         reducersW = nullptr;
     }
 
+    if (schemes) {
+        cudaFree(schemes);
+        schemes = nullptr;
+    }
+
     if (states) {
         cudaFree(states);
         states = nullptr;
@@ -133,41 +102,75 @@ SchemeAdditionsReducer::~SchemeAdditionsReducer() {
 }
 
 void SchemeAdditionsReducer::initialize() {
-    initializeRandomKernel<<<numBlocks, blockSize>>>(states, count, seed);
+    initializeKernel<<<numBlocks, blockSize>>>(reducersU, reducersV, reducersW, schemes, states, count, schemesCount, seed);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
+
+    bestAdditions[0] = reducersU[count].getAdditions();
+    bestAdditions[1] = reducersV[count].getAdditions();
+    bestAdditions[2] = reducersW[count].getAdditions();
+
+    reducedAdditions = bestAdditions[0] + bestAdditions[1] + bestAdditions[2];
+
+    std::cout << "Readed scheme uses " << bestAdditions[0] << " + " << bestAdditions[1] << " + " << bestAdditions[2] << " = " << reducedAdditions << " additions [naive]" << std::endl;
 }
 
 void SchemeAdditionsReducer::reduceIteration() {
-    runReducersKernel<<<numBlocks, blockSize>>>(reducersU, reducersV, reducersW, states, count);
+    if (maxFlips > 0) {
+        flipSchemesKernel<<<((schemesCount + blockSize - 1) / blockSize), blockSize>>>(schemes, states, schemesCount, maxFlips);
+        CUDA_CHECK(cudaGetLastError());
+        CUDA_CHECK(cudaDeviceSynchronize());
+    }
 
+    runReducersKernel<<<numBlocks, blockSize>>>(reducersU, reducersV, reducersW, schemes, states, count, schemesCount);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 bool SchemeAdditionsReducer::updateBest() {
-    std::partial_sort(indices[0].begin(), indices[0].begin() + topCount, indices[0].end(), [this](int index1, int index2) { return reducersU[index1].getAdditions() < reducersU[index2].getAdditions(); });
-    std::partial_sort(indices[1].begin(), indices[1].begin() + topCount, indices[1].end(), [this](int index1, int index2) { return reducersV[index1].getAdditions() < reducersV[index2].getAdditions(); });
-    std::partial_sort(indices[2].begin(), indices[2].begin() + topCount, indices[2].end(), [this](int index1, int index2) { return reducersW[index1].getAdditions() < reducersW[index2].getAdditions(); });
+    if (maxFlips == 0) {
+        std::partial_sort(indices[0].begin(), indices[0].begin() + topCount, indices[0].end(), [this](int index1, int index2) { return reducersU[index1].getAdditions() < reducersU[index2].getAdditions(); });
+        std::partial_sort(indices[1].begin(), indices[1].begin() + topCount, indices[1].end(), [this](int index1, int index2) { return reducersV[index1].getAdditions() < reducersV[index2].getAdditions(); });
+        std::partial_sort(indices[2].begin(), indices[2].begin() + topCount, indices[2].end(), [this](int index1, int index2) { return reducersW[index1].getAdditions() < reducersW[index2].getAdditions(); });
 
-    int ua = reducersU[indices[0][0]].getAdditions();
-    int va = reducersV[indices[1][0]].getAdditions();
-    int wa = reducersW[indices[2][0]].getAdditions();
+        int ua = reducersU[indices[0][0]].getAdditions();
+        int va = reducersV[indices[1][0]].getAdditions();
+        int wa = reducersW[indices[2][0]].getAdditions();
 
-    if (ua < bestAdditions[0]) {
-        bestAdditions[0] = ua;
-        reducersU[count + 1].copyFrom(reducersU[indices[0][0]]);
+        if (ua < bestAdditions[0]) {
+            bestAdditions[0] = ua;
+            reducersU[count].copyFrom(reducersU[indices[0][0]]);
+        }
+
+        if (va < bestAdditions[1]) {
+            bestAdditions[1] = va;
+            reducersV[count].copyFrom(reducersV[indices[1][0]]);
+        }
+
+        if (wa < bestAdditions[2]) {
+            bestAdditions[2] = wa;
+            reducersW[count].copyFrom(reducersW[indices[2][0]]);
+        }
     }
+    else {
+        std::partial_sort(indices[0].begin(), indices[0].begin() + topCount, indices[0].end(), [this](int index1, int index2) {
+            return reducersU[index1].getAdditions() + reducersV[index1].getAdditions() + reducersW[index1].getAdditions() < reducersU[index2].getAdditions() + reducersV[index2].getAdditions() + reducersW[index2].getAdditions();
+        });
 
-    if (va < bestAdditions[1]) {
-        bestAdditions[1] = va;
-        reducersV[count + 1].copyFrom(reducersV[indices[1][0]]);
-    }
+        int topIndex = indices[0][0];
+        int ua = reducersU[topIndex].getAdditions();
+        int va = reducersV[topIndex].getAdditions();
+        int wa = reducersW[topIndex].getAdditions();
 
-    if (wa < bestAdditions[2]) {
-        bestAdditions[2] = wa;
-        reducersW[count + 1].copyFrom(reducersW[indices[2][0]]);
+        if (ua + va + wa < bestAdditions[0] + bestAdditions[1] + bestAdditions[2]) {
+            bestAdditions[0] = ua;
+            bestAdditions[1] = va;
+            bestAdditions[2] = wa;
+            reducersU[count].copyFrom(reducersU[topIndex]);
+            reducersV[count].copyFrom(reducersV[topIndex]);
+            reducersW[count].copyFrom(reducersW[topIndex]);
+        }
     }
 
     int best = bestAdditions[0] + bestAdditions[1] + bestAdditions[2];
@@ -189,15 +192,21 @@ void SchemeAdditionsReducer::report(std::chrono::high_resolution_clock::time_poi
     double maxTime = *std::max_element(elapsedTimes.begin(), elapsedTimes.end());
     double meanTime = std::accumulate(elapsedTimes.begin(), elapsedTimes.end(), 0.0) / elapsedTimes.size();
 
-    std::cout << "+-----------+-----------+--------+--------+--------+-------+" << std::endl;
-    std::cout << "|  elapsed  | iteration | curr U | curr V | curr W | total |" << std::endl;
-    std::cout << "+-----------+-----------+--------+--------+--------+-------+" << std::endl;
+    std::cout << "+-----------+-----------+--------+--------+--------+-------+-------+-------+" << std::endl;
+    std::cout << "|  elapsed  | iteration | curr U | curr V | curr W | total | naive | fresh |" << std::endl;
+    std::cout << "+-----------+-----------+--------+--------+--------+-------+-------+-------+" << std::endl;
 
     for (int i = 0; i < topCount && i < count; i++) {
-        int currU = reducersU[indices[0][i]].getAdditions();
-        int currV = reducersV[indices[1][i]].getAdditions();
-        int currW = reducersW[indices[2][i]].getAdditions();
+        int ui = indices[0][i];
+        int vi = indices[maxFlips > 0 ? 0 : 1][i];
+        int wi = indices[maxFlips > 0 ? 0 : 2][i];
+
+        int currU = reducersU[ui].getAdditions();
+        int currV = reducersV[vi].getAdditions();
+        int currW = reducersW[wi].getAdditions();
         int curr = currU + currV + currW;
+        int naive = reducersU[ui].getNaiveAdditions() + reducersV[vi].getNaiveAdditions() + reducersW[wi].getNaiveAdditions();
+        int fresh = reducersU[ui].getFreshVars() + reducersV[vi].getFreshVars() + reducersW[wi].getFreshVars();
 
         std::cout << "| ";
         std::cout << std::setw(9) << prettyTime(elapsed) << " | ";
@@ -205,11 +214,13 @@ void SchemeAdditionsReducer::report(std::chrono::high_resolution_clock::time_poi
         std::cout << std::setw(6) << currU << " | ";
         std::cout << std::setw(6) << currV << " | ";
         std::cout << std::setw(6) << currW << " | ";
-        std::cout << std::setw(5) << curr << " |";
+        std::cout << std::setw(5) << curr << " | ";
+        std::cout << std::setw(5) << naive << " | ";
+        std::cout << std::setw(5) << fresh << " | ";
         std::cout << std::endl;
     }
 
-    std::cout << "+-----------+-----------+--------+--------+--------+-------+" << std::endl;
+    std::cout << "+-----------+-----------+--------+--------+--------+-------+-------+-------+" << std::endl;
     std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
     std::cout << "- best additions (U / V / W / total): " << bestAdditions[0] << " / " << bestAdditions[1] << " / " << bestAdditions[2] << " / " << reducedAdditions << std::endl;
     std::cout << std::endl;
@@ -217,6 +228,8 @@ void SchemeAdditionsReducer::report(std::chrono::high_resolution_clock::time_poi
 
 void SchemeAdditionsReducer::save() const {
     std::string path = getSavePath();
+    int naiveAdditions = reducersU[count].getNaiveAdditions() + reducersV[count].getNaiveAdditions() + reducersW[count].getNaiveAdditions();
+
     std::ofstream f(path);
 
     f << "{" << std::endl;
@@ -224,11 +237,11 @@ void SchemeAdditionsReducer::save() const {
     f << "    \"m\": " << m << "," << std::endl;
     f << "    \"z2\": false," << std::endl;
     f << "    \"complexity\": {\"naive\": " << naiveAdditions << ", \"reduced\": " << reducedAdditions << "}," << std::endl;
-    reducersU[count + 1].write(f, "u", "    ");
+    reducersU[count].write(f, "u", "    ");
     f << "," << std::endl;
-    reducersV[count + 1].write(f, "v", "    ");
+    reducersV[count].write(f, "v", "    ");
     f << "," << std::endl;
-    reducersW[count + 1].write(f, "w", "    ");
+    reducersW[count].write(f, "w", "    ");
     f << std::endl;
     f << "}" << std::endl;
     f.close();
@@ -240,34 +253,86 @@ std::string SchemeAdditionsReducer::getSavePath() const {
     ss << n1 << "x" << n2 << "x" << n3;
     ss << "_m" << m;
     ss << "_cr" << reducedAdditions;
-    ss << "_cn" << naiveAdditions;
+    ss << "_cn" << (reducersU[count].getNaiveAdditions() + reducersV[count].getNaiveAdditions() + reducersW[count].getNaiveAdditions());
     ss << "_" << ring;
     ss << "_reduced.json";
 
     return ss.str();
 }
 
-__global__ void initializeRandomKernel(curandState *states, int count, int seed) {
+__global__ void initializeKernel(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU, AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW, SchemeInteger *schemes, curandState *states, int count, int schemesCount, int seed) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
         return;
+
+    if (idx == 0) {
+        copySchemeToReducers(reducersU, reducersV, reducersW, count, schemes[0]);
+    }
+    else if (idx < schemesCount) {
+        schemes[0].copyTo(schemes[idx]);
+    }
 
     curand_init(seed, idx, 0, &states[idx]);
 }
 
-__global__ void runReducersKernel(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU, AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW, curandState *states, int count) {
+__global__ void flipSchemesKernel(SchemeInteger *schemes, curandState *states, int schemesCount, int maxFlips) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx == 0 || idx >= schemesCount)
+        return;
+
+    curandState &state = states[idx];
+    int flips = curand(&state) % (maxFlips + 1);
+
+    schemes[0].copyTo(schemes[idx]);
+
+    for (int i = 0; i < flips; i++)
+        if (!schemes[idx].tryFlip(state))
+            break;
+}
+
+__device__ void copySchemeToReducers(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU, AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW, int idx, const SchemeInteger &scheme) {
+    int u[MAX_REAL_UV_VARIABLES];
+    int v[MAX_REAL_UV_VARIABLES];
+    int w[MAX_REAL_W_VARIABLES];
+
+    reducersU[idx].clear();
+    reducersV[idx].clear();
+    reducersW[idx].clear();
+
+    for (int index = 0; index < scheme.m; index++) {
+        for (int i = 0; i < scheme.nn[0]; i++)
+            u[i] = scheme.uvw[0][index][i];
+
+        reducersU[idx].addExpression(u, scheme.nn[0]);
+    }
+
+    for (int index = 0; index < scheme.m; index++) {
+        for (int i = 0; i < scheme.nn[1]; i++)
+            v[i] = scheme.uvw[1][index][i];
+
+        reducersV[idx].addExpression(v, scheme.nn[1]);
+    }
+
+    for (int i = 0; i < scheme.nn[2]; i++) {
+        for (int index = 0; index < scheme.m; index++)
+            w[index] = scheme.uvw[2][index][i];
+
+        reducersW[idx].addExpression(w, scheme.m);
+    }
+}
+
+__global__ void runReducersKernel(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU, AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW, SchemeInteger *schemes, curandState *states, int count, int schemesCount) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
         return;
 
+    copySchemeToReducers(reducersU, reducersV, reducersW, idx, schemes[idx % schemesCount]);
+
     curandState &state = states[idx];
+
     int modeU = curand(&state) % 5;
     int modeV = curand(&state) % 5;
     int modeW = curand(&state) % 5;
-
-    reducersU[idx].copyFrom(reducersU[count]);
-    reducersV[idx].copyFrom(reducersV[count]);
-    reducersW[idx].copyFrom(reducersW[count]);
 
     reducersU[idx].reduce(modeU, state);
     reducersV[idx].reduce(modeV, state);
