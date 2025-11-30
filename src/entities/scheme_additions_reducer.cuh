@@ -26,9 +26,9 @@ class SchemeAdditionsReducer {
     int bestAdditions[3];
     std::vector<int> indices[3];
 
-    AdditionsReducer<MAX_RANK, MAX_FRESH_VARIABLES, MAX_MATRIX_ELEMENTS> *reducersU;
-    AdditionsReducer<MAX_RANK, MAX_FRESH_VARIABLES, MAX_MATRIX_ELEMENTS> *reducersV;
-    AdditionsReducer<MAX_MATRIX_ELEMENTS, MAX_FRESH_VARIABLES, MAX_RANK> *reducersW;
+    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU;
+    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV;
+    AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW;
     curandState *states;
 
     void initialize();
@@ -50,9 +50,9 @@ public:
 __global__ void initializeRandomKernel(curandState *states, int count, int seed);
 
 __global__ void runReducersKernel(
-    AdditionsReducer<MAX_RANK, MAX_FRESH_VARIABLES, MAX_MATRIX_ELEMENTS> *reducersU,
-    AdditionsReducer<MAX_RANK, MAX_FRESH_VARIABLES, MAX_MATRIX_ELEMENTS> *reducersV,
-    AdditionsReducer<MAX_MATRIX_ELEMENTS, MAX_FRESH_VARIABLES, MAX_RANK> *reducersW,
+    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU,
+    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV,
+    AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW,
     curandState *states,
     int count
 );

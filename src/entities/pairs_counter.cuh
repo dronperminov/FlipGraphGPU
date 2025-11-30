@@ -16,6 +16,12 @@ class PairsCounter {
     Pair pairs[maxPairs];
     int size;
     int topSize;
+    int maxCount;
+    int hashTable[maxPairs * 2];
+
+    __device__ __host__ void canonizePair(int &i, int &j) const;
+    __device__ __host__ unsigned int getHash(int i, int j) const;
+    __device__ __host__ int findOrCreateSlot(int i, int j);
 public:
     __device__ __host__ PairsCounter();
 
@@ -37,81 +43,71 @@ template <size_t maxPairs>
 __device__ __host__ PairsCounter<maxPairs>::PairsCounter() {
     size = 0;
     topSize = 0;
+    maxCount = 0;
+
+    for (int i = 0; i < maxPairs * 2; i++)
+        hashTable[i] = -1;
 }
 
 template <size_t maxPairs>
 __device__ __host__ void PairsCounter<maxPairs>::insert(int i, int j) {
-    if (abs(i) > abs(j)) {
-        int tmp = i;
-        i = j;
-        j = tmp;
-    }
+    int index = findOrCreateSlot(i, j);
+    if (index == -1)
+        return;
 
-    if (i < 0) {
-        i = -i;
-        j = -j;
-    }
+    pairs[index].count++;
 
-    int index = 0;
-
-    while (index < size && !(pairs[index].i == i && pairs[index].j == j))
-        index++;
-
-    if (index < size) {
-        pairs[index].count++;
-    }
-    else {
-        pairs[size].i = i;
-        pairs[size].j = j;
-        pairs[size++].count = 1;
-    }
+    if (pairs[index].count > maxCount)
+        maxCount = pairs[index].count;
 }
 
 template <size_t maxPairs>
 __device__ __host__ void PairsCounter<maxPairs>::sort() {
-    int gaps[] = {701, 301, 132, 57, 23, 10, 4, 1};
-
-    for (int g = 0; g < 8; g++) {
-        int gap = gaps[g];
-
-        if (gap > size)
-            continue;
-
-        for (int i = gap; i < size; i++) {
-            Pair tmp = pairs[i];
-            int j = i;
-
-            while (j >= gap && pairs[j - gap].count < tmp.count) {
-                pairs[j] = pairs[j - gap];
-                j -= gap;
-            }
-
-            pairs[j] = tmp;
-        }
+    if (maxCount < 2) {
+        topSize = size;
+        return;
     }
 
     topSize = 0;
 
-    while (topSize < size && pairs[topSize].count == pairs[0].count)
+    for (int i = 0; i < size; i++) {
+        if (pairs[i].count != maxCount)
+            continue;
+
+        if (i != topSize) {
+            Pair tmp = pairs[i];
+            pairs[i] = pairs[topSize];
+            pairs[topSize] = tmp;
+        }
+
         topSize++;
+    }
 }
 
 template <size_t maxPairs>
 __device__ __host__ void PairsCounter<maxPairs>::clear() {
     size = 0;
     topSize = 0;
+    maxCount = 0;
+
+    for (int i = 0; i < maxPairs * 2; i++)
+        hashTable[i] = -1;
 }
 
 template <size_t maxPairs>
 __device__ __host__ void PairsCounter<maxPairs>::copyFrom(const PairsCounter<maxPairs> &counter) {
     size = counter.size;
     topSize = counter.topSize;
+    maxCount = counter.maxCount;
 
     for (int index = 0; index < size; index++) {
         pairs[index].i = counter.pairs[index].i;
         pairs[index].j = counter.pairs[index].j;
         pairs[index].count = counter.pairs[index].count;
     }
+
+    for (int i = 0; i < maxPairs * 2; i++)
+        hashTable[i] = counter.hashTable[i];
 }
 
 template <size_t maxPairs>
@@ -144,5 +140,53 @@ __device__ __host__ int PairsCounter<maxPairs>::count() const {
 
 template <size_t maxPairs>
 __device__ __host__ PairsCounter<maxPairs>::operator bool() const {
-    return size > 0 && pairs[0].count > 1;
+    return size > 0 && maxCount > 1;
+}
+
+template <size_t maxPairs>
+__device__ __host__ void PairsCounter<maxPairs>::canonizePair(int &i, int &j) const {
+    if (abs(i) > abs(j)) {
+        int tmp = i;
+        i = j;
+        j = tmp;
+    }
+
+    if (i < 0) {
+        i = -i;
+        j = -j;
+    }
+}
+
+template <size_t maxPairs>
+__device__ __host__ unsigned int PairsCounter<maxPairs>::getHash(int i, int j) const {
+    unsigned int hash = (static_cast<unsigned int>(i) * 2654435761u) ^ (static_cast<unsigned int>(j) * 2246822519u);
+    return hash % (maxPairs * 2);
+}
+
+template <size_t maxPairs>
+__device__ __host__ int PairsCounter<maxPairs>::findOrCreateSlot(int i, int j) {
+    canonizePair(i, j);
+    unsigned int hash = getHash(i, j);
+
+    for (int attempts = 0; attempts < maxPairs * 2; attempts++) {
+        int index = hashTable[hash];
+
+        if (index == -1) {
+            if (size >= maxPairs)
+                return -1;
+
+            pairs[size].i = i;
+            pairs[size].j = j;
+            pairs[size].count = 0;
+            hashTable[hash] = size;
+            return size++;
+        }
+
+        if (pairs[index].i == i && pairs[index].j == j)
+            return index;
+
+        hash = (hash + 1) % (maxPairs * 2);
+    }
+
+    return -1;
 }

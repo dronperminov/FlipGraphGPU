@@ -36,6 +36,14 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    std::cout << "Config:" << std::endl;
+    std::cout << "- max fresh variables: " << MAX_FRESH_VARIABLES << std::endl;
+    std::cout << "- max UV variables: " << MAX_REAL_UV_VARIABLES << std::endl;
+    std::cout << "- max W variables: " << MAX_REAL_W_VARIABLES << std::endl;
+    std::cout << "- max UV expressions: " << MAX_UV_EXPRESSIONS << std::endl;
+    std::cout << "- max W expressions: " << MAX_W_EXPRESSIONS << std::endl;
+    std::cout << std::endl;
+
     std::cout << "Start additions reduction algorithm" << std::endl;
     std::cout << "- count: " << count << std::endl;
     std::cout << "- output path: " << outputPath << std::endl;
@@ -48,10 +56,8 @@ int main(int argc, char* argv[]) {
     bool correct = reducer.read(f);
     f.close();
 
-    if (!correct) {
-        std::cout << "Error during scheme reading" << std::endl;
+    if (!correct)
         return -1;
-    }
 
     reducer.reduce(maxNoImprovements);
     return 0;

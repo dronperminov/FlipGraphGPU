@@ -6,11 +6,13 @@
 #include "../config.cuh"
 #include "pairs_counter.cuh"
 
-const int GREEDY_MODE = 0;
-const int GREEDY_RANDOM_MODE = 1;
-const int TOP_RANDOM_MODE = 2;
-const int RANDOM_MODE = 3;
-const int SHUFFLE_MODE = 4;
+enum SelectSubexpressionMode {
+    GREEDY_MODE = 0,
+    GREEDY_RANDOM_MODE = 1,
+    TOP_RANDOM_MODE = 2,
+    RANDOM_MODE = 3,
+    SHUFFLE_MODE = 4
+};
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
 class AdditionsReducer {
@@ -28,6 +30,8 @@ class AdditionsReducer {
     __device__ __host__ void replaceExpression(int index, int i, int j, int varIndex);
 
     __device__ __host__ int indexOfVariable(int index, int variable) const;
+    __device__ Pair selectSubexpression(int mode, curandState &state) const;
+
     void showVariable(int variable, bool first) const;
 public:
     __device__ __host__ AdditionsReducer();
@@ -71,26 +75,14 @@ __device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
 __device__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::reduce(int mode, curandState &state) {
-    while (1) {
+    while (freshVariables < maxVariablesCount) {
         updateSubexpressions();
 
         if (!subexpressions)
             break;
 
-        Pair subexpression;
-        int currMode = mode;
-        if (mode == SHUFFLE_MODE)
-            currMode = curand(&state) % 4;
-
-        if (currMode == GREEDY_MODE)
-            subexpression = subexpressions.getTop();
-        else if (currMode == GREEDY_RANDOM_MODE)
-            subexpression = subexpressions.getGreedyRandom(state);
-        else if (currMode == TOP_RANDOM_MODE)
-            subexpression = subexpressions.getTopRandom(state);
-        else 
-            subexpression = subexpressions.getRandom(state);
-
+        int stepMode = mode == SHUFFLE_MODE ? curand(&state) % 4 : mode;
+        Pair subexpression = selectSubexpression(stepMode, state);
         replaceSubexpression(subexpression);
     }
 }
@@ -191,6 +183,20 @@ __device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount,
             return i;
 
     return -1;
+}
+
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
+__device__ Pair AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::selectSubexpression(int mode, curandState &state) const {
+    if (mode == GREEDY_MODE)
+        return subexpressions.getTop();
+
+    if (mode == GREEDY_RANDOM_MODE)
+        return subexpressions.getGreedyRandom(state);
+
+    if (mode == TOP_RANDOM_MODE)
+        return subexpressions.getTopRandom(state);
+
+    return subexpressions.getRandom(state);
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>

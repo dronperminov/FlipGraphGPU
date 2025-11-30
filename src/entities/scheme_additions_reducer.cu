@@ -16,9 +16,9 @@ SchemeAdditionsReducer::SchemeAdditionsReducer(int count, int seed, int blockSiz
             this->indices[i].push_back(j);
     }
 
-    CUDA_CHECK(cudaMallocManaged(&reducersU, (count + 2) * sizeof(AdditionsReducer<MAX_RANK, MAX_FRESH_VARIABLES, MAX_MATRIX_ELEMENTS>)));
-    CUDA_CHECK(cudaMallocManaged(&reducersV, (count + 2) * sizeof(AdditionsReducer<MAX_RANK, MAX_FRESH_VARIABLES, MAX_MATRIX_ELEMENTS>)));
-    CUDA_CHECK(cudaMallocManaged(&reducersW, (count + 2) * sizeof(AdditionsReducer<MAX_MATRIX_ELEMENTS, MAX_FRESH_VARIABLES, MAX_RANK>)));
+    CUDA_CHECK(cudaMallocManaged(&reducersU, (count + 2) * sizeof(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES>)));
+    CUDA_CHECK(cudaMallocManaged(&reducersV, (count + 2) * sizeof(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES>)));
+    CUDA_CHECK(cudaMallocManaged(&reducersW, (count + 2) * sizeof(AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES>)));
     CUDA_CHECK(cudaMallocManaged(&states, count * sizeof(curandState)));
 }
 
@@ -26,9 +26,19 @@ bool SchemeAdditionsReducer::read(std::ifstream &f) {
     f >> n1 >> n2 >> n3 >> m;
     std::cout << "Read scheme " << n1 << "x" << n2 << "x" << n3 << " with " << m << " multiplications" << std::endl;
 
-    int u[MAX_RANK][MAX_MATRIX_ELEMENTS];
-    int v[MAX_RANK][MAX_MATRIX_ELEMENTS];
-    int w[MAX_MATRIX_ELEMENTS][MAX_RANK];
+    if (m > MAX_UV_EXPRESSIONS || m > MAX_REAL_W_VARIABLES) {
+        std::cout << "Error: multiplications number (" << m << ") too big for compiled configuration" << std::endl;
+        return false;
+    }
+
+    if (n1 * n2 > MAX_REAL_UV_VARIABLES || n2 * n3 > MAX_REAL_UV_VARIABLES || n3 * n1 > MAX_W_EXPRESSIONS) {
+        std::cout << "Error: dimensions (" << n1 << "x" << n2 << "x" << n3 << ") too big for compiled configuration" << std::endl;
+        return false;
+    }
+
+    int u[MAX_UV_EXPRESSIONS][MAX_REAL_UV_VARIABLES];
+    int v[MAX_UV_EXPRESSIONS][MAX_REAL_UV_VARIABLES];
+    int w[MAX_W_EXPRESSIONS][MAX_REAL_W_VARIABLES];
 
     for (int index = 0; index < m; index++)
         for (int i = 0; i < n1 * n2; i++)
@@ -53,8 +63,10 @@ bool SchemeAdditionsReducer::read(std::ifstream &f) {
     for (int i = 0; i < n3 * n1 && correct; i++)
         correct &= reducersW[count].addExpression(w[i], m);
 
-    if (!correct)
+    if (!correct) {
+        std::cout << "Error: available only ternary expressions" << std::endl;
         return false;
+    }
 
     bestAdditions[0] = reducersU[count].getAdditions();
     bestAdditions[1] = reducersV[count].getAdditions();
@@ -243,7 +255,7 @@ __global__ void initializeRandomKernel(curandState *states, int count, int seed)
     curand_init(seed, idx, 0, &states[idx]);
 }
 
-__global__ void runReducersKernel(AdditionsReducer<MAX_RANK, MAX_FRESH_VARIABLES, MAX_MATRIX_ELEMENTS> *reducersU, AdditionsReducer<MAX_RANK, MAX_FRESH_VARIABLES, MAX_MATRIX_ELEMENTS> *reducersV, AdditionsReducer<MAX_MATRIX_ELEMENTS, MAX_FRESH_VARIABLES, MAX_RANK> *reducersW, curandState *states, int count) {
+__global__ void runReducersKernel(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU, AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW, curandState *states, int count) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
         return;

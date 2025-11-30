@@ -14,7 +14,11 @@ const int MAX_MATRIX_ELEMENTS = std::min(int(sizeof(T) * 8), 64);
 const int MAX_PAIRS = std::min(MAX_RANK * (MAX_RANK - 1) / 2, 500);
 
 // additions reducer capacity
-const int MAX_FRESH_VARIABLES = 2000;
+const int MAX_UV_EXPRESSIONS = MAX_RANK;
+const int MAX_W_EXPRESSIONS = MAX_MATRIX_ELEMENTS;
+const int MAX_REAL_UV_VARIABLES = MAX_MATRIX_ELEMENTS;
+const int MAX_REAL_W_VARIABLES = MAX_RANK;
+const int MAX_FRESH_VARIABLES = 500;
 
 // project limit
 const int MIN_PROJECT_N = 2;
