@@ -29,7 +29,7 @@ class AdditionsReducer {
     __device__ __host__ void replaceSubexpression(const Pair &subexpression);
     __device__ __host__ void replaceExpression(int index, int i, int j, int varIndex);
 
-    __device__ __host__ int indexOfVariable(int index, int variable) const;
+    __device__ __host__ bool containsVariable(int exprIndex, int variable, int &index) const;
     __device__ Pair selectSubexpression(int mode, curandState &state) const;
 
     void showVariable(int variable, bool first) const;
@@ -153,21 +153,14 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
 __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::replaceSubexpression(const Pair &subexpression) {
     int varIndex = realVariables + freshVariables + 1;
+    int i, j;
 
     for (int index = 0; index < expressionsCount; index++) {
-        int i1 = indexOfVariable(index, subexpression.i);
-        int j1 = indexOfVariable(index, subexpression.j);
-
-        if (i1 > -1 && j1 > -1) {
-            replaceExpression(index, i1, j1, varIndex);
-            continue;
+        if (containsVariable(index, subexpression.i, i) && containsVariable(index, subexpression.j, j)) {
+            replaceExpression(index, i, j, varIndex);
         }
-
-        int i2 = indexOfVariable(index, -subexpression.i);
-        int j2 = indexOfVariable(index, -subexpression.j);
-
-        if (i2 > -1 && j2 > -1) {
-            replaceExpression(index, i2, j2, -varIndex);
+        else if (containsVariable(index, -subexpression.i, i) && containsVariable(index, -subexpression.j, j)) {
+            replaceExpression(index, i, j, -varIndex);
         }
     }
 
@@ -177,12 +170,15 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::indexOfVariable(int index, int variable) const {
-    for (int i = 0; i < expressionSizes[index]; i++)
-        if (expressions[index][i] == variable)
-            return i;
+__device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::containsVariable(int exprIndex, int variable, int &index) const {
+    for (int i = 0; i < expressionSizes[exprIndex]; i++) {
+        if (expressions[exprIndex][i] == variable) {
+            index = i;
+            return true;
+        }
+    }
 
-    return -1;
+    return false;
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
