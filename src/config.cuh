@@ -11,7 +11,10 @@ const int MAX_RANK = 350;
 const int MAX_MATRIX_ELEMENTS = std::min(int(sizeof(T) * 8), 64);
 
 // FlipSet capacity (for 16 elements - 112, 32 elements - 448, 64 elements - 1792)
-const int MAX_PAIRS = std::min(MAX_RANK * (MAX_RANK - 1) / 2, 1800);
+const int MAX_PAIRS = std::min(MAX_RANK * (MAX_RANK - 1) / 2, 500);
+
+// additions reducer capacity
+const int MAX_FRESH_VARIABLES = 2000;
 
 // project limit
 const int MIN_PROJECT_N = 2;
