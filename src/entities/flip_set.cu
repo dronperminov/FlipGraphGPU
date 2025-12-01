@@ -5,6 +5,9 @@ __device__ __host__ FlipSet::FlipSet() {
 }
 
 __device__ __host__ void FlipSet::add(uint32_t index1, uint32_t index2) {
+    if (size >= MAX_PAIRS)
+        return;
+
     uint32_t pair = (index1 << 16) | index2;
     pairs[size++] = pair;
 }

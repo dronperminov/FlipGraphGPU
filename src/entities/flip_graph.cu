@@ -126,11 +126,7 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["2x4x5"] = 33;
     n2knownRanks["2x4x10"] = 65;
     n2knownRanks["2x4x13"] = 84;
-    n2knownRanks["2x5x7"] = 57;
-    n2knownRanks["2x5x8"] = 65;
     n2knownRanks["2x5x10"] = 80;
-    n2knownRanks["2x6x8"] = 77;
-    n2knownRanks["2x7x7"] = 77;
     n2knownRanks["2x7x9"] = 101;
     n2knownRanks["3x3x6"] = 42;
     n2knownRanks["3x3x8"] = 56;
@@ -143,7 +139,6 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["3x3x15"] = 105;
     n2knownRanks["3x3x16"] = 112;
     n2knownRanks["3x4x7"] = 64;
-    n2knownRanks["3x4x8"] = 74;
     n2knownRanks["3x4x13"] = 118;
     n2knownRanks["3x4x14"] = 128;
     n2knownRanks["3x4x15"] = 137;
@@ -151,7 +146,6 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["3x6x7"] = 96;
     n2knownRanks["3x6x9"] = 122;
     n2knownRanks["3x6x10"] = 136;
-    n2knownRanks["3x7x7"] = 113;
     n2knownRanks["3x7x8"] = 128;
     n2knownRanks["3x7x9"] = 143;
     n2knownRanks["4x4x4"] = 47;
@@ -175,7 +169,6 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["5x5x10"] = 183;
     n2knownRanks["5x5x11"] = 200;
     n2knownRanks["5x5x12"] = 217;
-    n2knownRanks["5x7x8"] = 206;
     n2knownRanks["6x6x10"] = 252;
     n2knownRanks["7x7x7"] = 248;
     n2knownRanks["7x7x8"] = 275;
@@ -334,9 +327,16 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
     }
 
     if (logPeriod == 0 || iteration % logPeriod == 0) {
-        std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
-        std::cout << "|  elapsed  | iteration | run id |  size  |  real  | known | best | curr | flips count |" << std::endl;
-        std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
+        std::cout << std::endl << std::left;
+        std::cout << "+--------------------------------------------------------------+" << std::endl;
+        std::cout << "| Schemes            Iteration            Elapsed time         |" << std::endl;
+        std::cout << "| " << std::right;
+        std::cout << std::setw(7) << schemesCount << "            ";
+        std::cout << std::setw(9) << iteration << "            ";
+        std::cout << std::setw(12) << prettyTime(elapsed) << "         |" << std::endl;
+        std::cout << "+--------+--------+--------+-------+------+------+-------------+" << std::endl;
+        std::cout << "| run id |  size  |  real  | known | best | curr | flips count |" << std::endl;
+        std::cout << "+--------+--------+--------+-------+------+------+-------------+" << std::endl;
 
         std::sort(keys.begin(), keys.end(), [n2indices, this](std::string &s1, std::string &s2){
             return compareKeys(schemes[n2indices.at(s1)[0]], schemes[n2indices.at(s2)[0]]);
@@ -349,8 +349,6 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
                 Scheme &scheme = schemes[indices[i]];
 
                 std::cout << "| ";
-                std::cout << std::setw(9) << prettyTime(elapsed) << " | ";
-                std::cout << std::setw(9) << iteration << " | ";
                 std::cout << std::setw(6) << (indices[i] + 1) << " | ";
                 std::cout << std::setw(6) << key << " | ";
                 std::cout << std::setw(6) << getKey(scheme, false) << " | ";
@@ -369,7 +367,7 @@ void FlipGraph::report(std::chrono::high_resolution_clock::time_point startTime,
                 std::cout << std::endl;
             }
 
-            std::cout << "+-----------+-----------+--------+--------+--------+-------+------+------+-------------+" << std::endl;
+            std::cout << "+--------+--------+--------+-------+------+------+-------------+" << std::endl;
 
             // int period = 1 + rand() % 10;
             // for (size_t i = 0; i < indices.size(); i++)
