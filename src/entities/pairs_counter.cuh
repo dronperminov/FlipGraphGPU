@@ -34,6 +34,7 @@ public:
     __device__ Pair getGreedyRandom(curandState &state) const;
     __device__ Pair getRandom(curandState &state) const;
     __device__ Pair getTopRandom(curandState &state) const;
+    __device__ Pair getWeightedRandom(curandState &state) const;
 
     __device__ __host__ int count() const;
     __device__ __host__ operator bool() const;
@@ -82,6 +83,14 @@ __device__ __host__ void PairsCounter<maxPairs>::sort() {
 
         topSize++;
     }
+
+    int j = topSize;
+
+    for (int i = topSize; i < size; i++)
+        if (pairs[i].count > 1)
+            pairs[j++] = pairs[i];
+
+    size = j;
 }
 
 template <size_t maxPairs>
@@ -131,6 +140,26 @@ __device__ Pair PairsCounter<maxPairs>::getTopRandom(curandState &state) const {
         return pairs[curand(&state) % topSize];
 
     return pairs[curand(&state) % size];
+}
+
+template <size_t maxPairs>
+__device__ Pair PairsCounter<maxPairs>::getWeightedRandom(curandState &state) const {
+    float total = 0;
+
+    for (int i = 0; i < size; i++)
+        total += pairs[i].count;
+
+    float p = curand_uniform(&state) * total;
+    float sum = 0;
+
+    for (int i = 0; i < size; i++) {
+        sum += pairs[i].count;
+
+        if (p <= sum)
+            return pairs[i];
+    }
+
+    return pairs[size - 1];
 }
 
 template <size_t maxPairs>

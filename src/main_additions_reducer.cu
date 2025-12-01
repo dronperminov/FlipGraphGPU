@@ -14,6 +14,7 @@ int main(int argc, char* argv[]) {
     parser.add("--count", ArgType::Natural, "INT", "number of parallel reducers", "32");
     parser.add("--schemes-count", ArgType::Natural, "INT", "number of parallel schemes", "1");
     parser.add("--block-size", ArgType::Natural, "INT", "number of cuda threads", "32");
+    parser.add("--start-additions", ArgType::Natural, "INT", "upper bound of additions for check optimality", "0");
     parser.add("--max-flips", ArgType::Natural, "INT", "number of scheme flips", "0");
     parser.add("--max-no-improvements", ArgType::Natural, "INT", "max iterations without improvements", "3");
     parser.add("--seed", ArgType::Natural, "INT", "random seed", "0");
@@ -28,6 +29,7 @@ int main(int argc, char* argv[]) {
     int schemesCount = std::stoi(parser.get("--schemes-count"));
     int blockSize = std::stoi(parser.get("--block-size"));
     int maxNoImprovements = std::stoi(parser.get("--max-no-improvements"));
+    int startAdditions = std::stoi(parser.get("--start-additions"));
     int maxFlips = std::stoi(parser.get("--max-flips"));
     int seed = std::stoi(parser.get("--seed"));
 
@@ -40,7 +42,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    std::cout << "Config:" << std::endl;
+    std::cout << "Compiled configuration:" << std::endl;
     std::cout << "- max fresh variables: " << MAX_FRESH_VARIABLES << std::endl;
     std::cout << "- max UV variables: " << MAX_REAL_UV_VARIABLES << std::endl;
     std::cout << "- max W variables: " << MAX_REAL_W_VARIABLES << std::endl;
@@ -53,7 +55,13 @@ int main(int argc, char* argv[]) {
     std::cout << "- schemes count: " << schemesCount << std::endl;
     std::cout << "- output path: " << outputPath << std::endl;
     std::cout << "- block size: " << blockSize << std::endl;
-    std::cout << "- max flips: " << maxFlips << std::endl;
+
+    if (startAdditions > 0)
+        std::cout << "- start additions: " << startAdditions << std::endl;
+
+    if (maxFlips > 0)
+        std::cout << "- max flips: " << maxFlips << std::endl;
+
     std::cout << "- max no improvements: " << maxNoImprovements << std::endl;
     std::cout << "- seed: " << seed << std::endl;
     std::cout << std::endl;
@@ -65,6 +73,6 @@ int main(int argc, char* argv[]) {
     if (!correct)
         return -1;
 
-    reducer.reduce(maxNoImprovements);
+    reducer.reduce(maxNoImprovements, startAdditions);
     return 0;
 }

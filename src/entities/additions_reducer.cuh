@@ -10,8 +10,9 @@ enum SelectSubexpressionMode {
     GREEDY_MODE = 0,
     GREEDY_RANDOM_MODE = 1,
     TOP_RANDOM_MODE = 2,
-    RANDOM_MODE = 3,
-    SHUFFLE_MODE = 4
+    WEIGHTED_RANDOM_MODE = 3,
+    RANDOM_MODE = 4,
+    SHUFFLE_MODE = 5
 };
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
@@ -87,7 +88,7 @@ __device__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpr
         if (!subexpressions)
             break;
 
-        int stepMode = mode == SHUFFLE_MODE ? curand(&state) % 4 : mode;
+        int stepMode = mode == SHUFFLE_MODE ? curand(&state) % 5 : mode;
         Pair subexpression = selectSubexpression(stepMode, state);
         replaceSubexpression(subexpression);
     }
@@ -215,6 +216,9 @@ __device__ Pair AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpr
 
     if (mode == TOP_RANDOM_MODE)
         return subexpressions.getTopRandom(state);
+
+    if (mode == WEIGHTED_RANDOM_MODE)
+        return subexpressions.getWeightedRandom(state);
 
     return subexpressions.getRandom(state);
 }

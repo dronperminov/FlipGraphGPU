@@ -35,17 +35,18 @@ class SchemeAdditionsReducer {
     curandState *states;
 
     void initialize();
-    void reduceIteration();
-    bool updateBest();
+    void reduceIteration(int iteration);
+    bool updateBest(int startAdditions);
     void report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes);
     void save() const;
 
     std::string getSavePath() const;
+    std::string getDimensions() const;
 public:
     SchemeAdditionsReducer(int count, int schemesCount, int maxFlips, int seed, int blockSize, const std::string &outputPath, int topCount = 10);
 
     bool read(std::ifstream &f);
-    void reduce(int iterations);
+    void reduce(int maxNoImprovements, int startAdditions);
 
     ~SchemeAdditionsReducer();
 };
