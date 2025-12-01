@@ -198,32 +198,36 @@ void SchemeAdditionsReducer::report(std::chrono::high_resolution_clock::time_poi
     std::string dimensions = getDimensions();
 
     std::cout << std::endl << std::left;
-    std::cout << "+-------------------------------------------------------------------------------------------------------+" << std::endl;
+    std::cout << "+----------------------------------------------------------------------------------------------------------------------------+" << std::endl;
     std::cout << "| ";
-    std::cout << "Size: " << std::setw(17) << dimensions << "   ";
-    std::cout << "Reducers: " << std::setw(13) << count << "   ";
-    std::cout << "                          ";
+    std::cout << "Size: " << std::setw(24) << dimensions << "   ";
+    std::cout << "Reducers: " << std::setw(20) << count << "   ";
+    std::cout << "                                 ";
     std::cout << "Iteration: " << std::setw(12) << iteration;
     std::cout << " |" << std::endl;
 
     std::cout << "| ";
-    std::cout << "Rank: " << std::setw(17) << m << "   ";
-    std::cout << "Schemes: " << std::setw(14) << schemesCount << "   ";
-    std::cout << "                          ";
+    std::cout << "Rank: " << std::setw(24) << m << "   ";
+    std::cout << "Schemes: " << std::setw(21) << schemesCount << "   ";
+    std::cout << "                                 ";
     std::cout << "Elapsed: " << std::setw(14) << prettyTime(elapsed);
     std::cout << " |" << std::endl;
 
     std::cout << std::right;
-    std::cout << "+=========================+=========================+=========================+=========================+" << std::endl;
-    std::cout << "|        Reducer U        |        Reducer V        |        Reducer W        |          Total          |" << std::endl;
-    std::cout << "+-------+---------+-------+-------+---------+-------+-------+---------+-------+-------+---------+-------|" << std::endl;
-    std::cout << "| naive | reduced | fresh | naive | reduced | fresh | naive | reduced | fresh | naive | reduced | fresh |" << std::endl;
-    std::cout << "+-------+---------+-------+-------+---------+-------+-------+---------+-------+-------+---------+-------+" << std::endl;
+    std::cout << "+================================+================================+================================+=========================+" << std::endl;
+    std::cout << "|           Reducers U           |           Reducers V           |           Reducers W           |          Total          |" << std::endl;
+    std::cout << "+------+-------+---------+-------+------+-------+---------+-------+------+-------+---------+-------+-------+---------+-------|" << std::endl;
+    std::cout << "| mode | naive | reduced | fresh | mode | naive | reduced | fresh | mode | naive | reduced | fresh | naive | reduced | fresh |" << std::endl;
+    std::cout << "+------+-------+---------+-------+------+-------+---------+-------+------+-------+---------+-------+-------+---------+-------+" << std::endl;
 
     for (int i = 0; i < topCount && i < count; i++) {
         int ui = indices[0][i];
         int vi = indices[maxFlips > 0 ? 0 : 1][i];
         int wi = indices[maxFlips > 0 ? 0 : 2][i];
+
+        std::string modeU = reducersU[ui].getMode();
+        std::string modeV = reducersV[vi].getMode();
+        std::string modeW = reducersW[wi].getMode();
 
         int naiveU = reducersU[ui].getNaiveAdditions();
         int naiveV = reducersV[vi].getNaiveAdditions();
@@ -241,14 +245,14 @@ void SchemeAdditionsReducer::report(std::chrono::high_resolution_clock::time_poi
         int fresh = freshU + freshV + freshW;
 
         std::cout << "| ";
-        std::cout << std::setw(5) << naiveU << "   " << std::setw(7) << reducedU << "   " << std::setw(5) << freshU << " | ";
-        std::cout << std::setw(5) << naiveV << "   " << std::setw(7) << reducedV << "   " << std::setw(5) << freshV << " | ";
-        std::cout << std::setw(5) << naiveW << "   " << std::setw(7) << reducedW << "   " << std::setw(5) << freshW << " | ";
+        std::cout << std::setw(4) << modeU << "   " << std::setw(5) << naiveU << "   " << std::setw(7) << reducedU << "   " << std::setw(5) << freshU << " | ";
+        std::cout << std::setw(4) << modeV << "   " << std::setw(5) << naiveV << "   " << std::setw(7) << reducedV << "   " << std::setw(5) << freshV << " | ";
+        std::cout << std::setw(4) << modeW << "   " << std::setw(5) << naiveW << "   " << std::setw(7) << reducedW << "   " << std::setw(5) << freshW << " | ";
         std::cout << std::setw(5) << naive << "   " << std::setw(7) << reduced << "   " << std::setw(5) << fresh << " | ";
         std::cout << std::endl;
     }
 
-    std::cout << "+-------------------------+-------------------------+-------------------------+-------------------------+" << std::endl;
+    std::cout << "+--------------------------------+--------------------------------+--------------------------------+-------------------------+" << std::endl;
     std::cout << "- iteration time (last / min / max / mean): " << prettyTime(lastTime) << " / " << prettyTime(minTime) << " / " << prettyTime(maxTime) << " / " << prettyTime(meanTime) << std::endl;
     std::cout << "- best additions (U / V / W / total): " << bestAdditions[0] << " / " << bestAdditions[1] << " / " << bestAdditions[2] << " / " << reducedAdditions << std::endl;
     std::cout << std::endl;
@@ -366,11 +370,11 @@ __global__ void runReducersKernel(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH
 
     curandState &state = states[idx];
 
-    int modeU = idx == 0 ? 0 : 1 + curand(&state) % 5;
-    int modeV = idx == 0 ? 0 : 1 + curand(&state) % 5;
-    int modeW = idx == 0 ? 0 : 1 + curand(&state) % 5;
+    reducersU[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % 5);
+    reducersV[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % 5);
+    reducersW[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % 5);
 
-    reducersU[idx].reduce(modeU, state);
-    reducersV[idx].reduce(modeV, state);
-    reducersW[idx].reduce(modeW, state);
+    reducersU[idx].reduce(state);
+    reducersV[idx].reduce(state);
+    reducersW[idx].reduce(state);
 }

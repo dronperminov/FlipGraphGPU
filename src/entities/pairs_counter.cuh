@@ -30,11 +30,11 @@ public:
     __device__ __host__ void clear();
     __device__ __host__ void copyFrom(const PairsCounter<maxPairs> &counter);
 
-    __device__ __host__ Pair getTop() const;
+    __device__ __host__ Pair getGreedy() const;
+    __device__ Pair getGreedyAlternative(curandState &state) const;
     __device__ Pair getGreedyRandom(curandState &state) const;
-    __device__ Pair getRandom(curandState &state) const;
-    __device__ Pair getTopRandom(curandState &state) const;
     __device__ Pair getWeightedRandom(curandState &state) const;
+    __device__ Pair getRandom(curandState &state) const;
 
     __device__ __host__ int count() const;
     __device__ __host__ operator bool() const;
@@ -120,22 +120,17 @@ __device__ __host__ void PairsCounter<maxPairs>::copyFrom(const PairsCounter<max
 }
 
 template <size_t maxPairs>
-__device__ __host__ Pair PairsCounter<maxPairs>::getTop() const {
+__device__ __host__ Pair PairsCounter<maxPairs>::getGreedy() const {
     return pairs[0];
 }
 
 template <size_t maxPairs>
-__device__ Pair PairsCounter<maxPairs>::getRandom(curandState &state) const {
-    return pairs[curand(&state) % size];
-}
-
-template <size_t maxPairs>
-__device__ Pair PairsCounter<maxPairs>::getGreedyRandom(curandState &state) const {
+__device__ Pair PairsCounter<maxPairs>::getGreedyAlternative(curandState &state) const {
     return pairs[curand(&state) % topSize];
 }
 
 template <size_t maxPairs>
-__device__ Pair PairsCounter<maxPairs>::getTopRandom(curandState &state) const {
+__device__ Pair PairsCounter<maxPairs>::getGreedyRandom(curandState &state) const {
     if (curand_uniform(&state) < 0.8)
         return pairs[curand(&state) % topSize];
 
@@ -160,6 +155,11 @@ __device__ Pair PairsCounter<maxPairs>::getWeightedRandom(curandState &state) co
     }
 
     return pairs[size - 1];
+}
+
+template <size_t maxPairs>
+__device__ Pair PairsCounter<maxPairs>::getRandom(curandState &state) const {
+    return pairs[curand(&state) % size];
 }
 
 template <size_t maxPairs>

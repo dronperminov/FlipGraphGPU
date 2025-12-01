@@ -8,11 +8,11 @@
 
 enum SelectSubexpressionMode {
     GREEDY_MODE = 0,
-    GREEDY_RANDOM_MODE = 1,
-    TOP_RANDOM_MODE = 2,
+    GREEDY_ALTERNATIVE_MODE = 1,
+    GREEDY_RANDOM_MODE = 2,
     WEIGHTED_RANDOM_MODE = 3,
     RANDOM_MODE = 4,
-    SHUFFLE_MODE = 5
+    MIX_MODE = 5
 };
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
@@ -26,6 +26,7 @@ class AdditionsReducer {
     int realVariables;
     int freshVariables;
     int naiveAdditions;
+    int mode;
 
     __device__ __host__ void updateSubexpressions();
     __device__ __host__ void replaceSubexpression(const Pair &subexpression);
@@ -39,13 +40,15 @@ public:
     __device__ __host__ AdditionsReducer();
 
     __device__ __host__ bool addExpression(int *values, int count);
-    __device__ void reduce(int mode, curandState &state);
+    __device__ void reduce(curandState &state);
     __device__ __host__ void copyFrom(const AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength> &reducer);
     __device__ __host__ void clear();
+    __device__ __host__ void setMode(int mode);
 
     __device__ __host__ int getAdditions() const;
     __device__ __host__ int getNaiveAdditions() const;
     __device__ __host__ int getFreshVars() const;
+    std::string getMode() const;
 
     void show() const;
     void write(std::ostream &os, const std::string &name, const std::string &indent) const;
@@ -57,6 +60,7 @@ __device__ __host__ AdditionsReducer<maxExpressionsCount, maxVariablesCount, max
     realVariables = 0;
     freshVariables = 0;
     naiveAdditions = 0;
+    mode = GREEDY_MODE;
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
@@ -81,14 +85,14 @@ __device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::reduce(int mode, curandState &state) {
+__device__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::reduce(curandState &state) {
     while (freshVariables < maxVariablesCount) {
         updateSubexpressions();
 
         if (!subexpressions)
             break;
 
-        int stepMode = mode == SHUFFLE_MODE ? curand(&state) % 5 : mode;
+        int stepMode = mode == MIX_MODE ? curand(&state) % MIX_MODE : mode;
         Pair subexpression = selectSubexpression(stepMode, state);
         replaceSubexpression(subexpression);
     }
@@ -99,6 +103,7 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
     expressionsCount = reducer.expressionsCount;
     realVariables = reducer.realVariables;
     freshVariables = reducer.freshVariables;
+    mode = reducer.mode;
 
     for (int index = 0; index < expressionsCount; index++) {
         expressionSizes[index] = reducer.expressionSizes[index];
@@ -124,6 +129,11 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
+__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::setMode(int mode) {
+    this->mode = mode;
+}
+
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
 __device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getAdditions() const {
     int additions = freshVariables;
 
@@ -141,6 +151,26 @@ __device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount,
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
 __device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getFreshVars() const {
     return freshVariables;
+}
+
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
+std::string AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getMode() const {
+    if (mode == GREEDY_MODE)
+        return "g";
+
+    if (mode == GREEDY_ALTERNATIVE_MODE)
+        return "ga";
+
+    if (mode == GREEDY_RANDOM_MODE)
+        return "gr";
+
+    if (mode == WEIGHTED_RANDOM_MODE)
+        return "wr";
+
+    if (mode == RANDOM_MODE)
+        return "rnd";
+
+    return "mix";
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
@@ -209,13 +239,13 @@ __device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
 __device__ Pair AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::selectSubexpression(int mode, curandState &state) const {
     if (mode == GREEDY_MODE)
-        return subexpressions.getTop();
+        return subexpressions.getGreedy();
+
+    if (mode == GREEDY_ALTERNATIVE_MODE)
+        return subexpressions.getGreedyAlternative(state);
 
     if (mode == GREEDY_RANDOM_MODE)
         return subexpressions.getGreedyRandom(state);
-
-    if (mode == TOP_RANDOM_MODE)
-        return subexpressions.getTopRandom(state);
 
     if (mode == WEIGHTED_RANDOM_MODE)
         return subexpressions.getWeightedRandom(state);
