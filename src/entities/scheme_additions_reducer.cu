@@ -130,9 +130,35 @@ void SchemeAdditionsReducer::reduceIteration(int iteration) {
 
 bool SchemeAdditionsReducer::updateBest(int startAdditions) {
     if (maxFlips == 0) {
-        std::partial_sort(indices[0].begin(), indices[0].begin() + topCount, indices[0].end(), [this](int index1, int index2) { return reducersU[index1].getAdditions() < reducersU[index2].getAdditions(); });
-        std::partial_sort(indices[1].begin(), indices[1].begin() + topCount, indices[1].end(), [this](int index1, int index2) { return reducersV[index1].getAdditions() < reducersV[index2].getAdditions(); });
-        std::partial_sort(indices[2].begin(), indices[2].begin() + topCount, indices[2].end(), [this](int index1, int index2) { return reducersW[index1].getAdditions() < reducersW[index2].getAdditions(); });
+        std::partial_sort(indices[0].begin(), indices[0].begin() + topCount, indices[0].end(), [this](int index1, int index2) {
+            int additions1 = reducersU[index1].getAdditions();
+            int additions2 = reducersU[index2].getAdditions();
+
+            if (additions1 != additions2)
+                return additions1 < additions2;
+
+            return reducersU[index1].getFreshVars() < reducersU[index2].getFreshVars();
+        });
+
+        std::partial_sort(indices[1].begin(), indices[1].begin() + topCount, indices[1].end(), [this](int index1, int index2) {
+            int additions1 = reducersV[index1].getAdditions();
+            int additions2 = reducersV[index2].getAdditions();
+
+            if (additions1 != additions2)
+                return additions1 < additions2;
+
+            return reducersV[index1].getFreshVars() < reducersV[index2].getFreshVars();
+        });
+
+        std::partial_sort(indices[2].begin(), indices[2].begin() + topCount, indices[2].end(), [this](int index1, int index2) {
+            int additions1 = reducersW[index1].getAdditions();
+            int additions2 = reducersW[index2].getAdditions();
+
+            if (additions1 != additions2)
+                return additions1 < additions2;
+
+            return reducersW[index1].getFreshVars() < reducersW[index2].getFreshVars();
+        });
 
         int ua = reducersU[indices[0][0]].getAdditions();
         int va = reducersV[indices[1][0]].getAdditions();
@@ -155,7 +181,14 @@ bool SchemeAdditionsReducer::updateBest(int startAdditions) {
     }
     else {
         std::partial_sort(indices[0].begin(), indices[0].begin() + topCount, indices[0].end(), [this](int index1, int index2) {
-            return reducersU[index1].getAdditions() + reducersV[index1].getAdditions() + reducersW[index1].getAdditions() < reducersU[index2].getAdditions() + reducersV[index2].getAdditions() + reducersW[index2].getAdditions();
+            int additions1 = reducersU[index1].getAdditions() + reducersV[index1].getAdditions() + reducersW[index1].getAdditions();
+            int additions2 = reducersU[index2].getAdditions() + reducersV[index2].getAdditions() + reducersW[index2].getAdditions();
+            if (additions1 != additions2)
+                return additions1 < additions2;
+
+            int fresh1 = reducersU[index1].getFreshVars() + reducersV[index1].getFreshVars() + reducersW[index1].getFreshVars();
+            int fresh2 = reducersU[index2].getFreshVars() + reducersV[index2].getFreshVars() + reducersW[index2].getFreshVars();
+            return fresh1 < fresh2;
         });
 
         int topIndex = indices[0][0];
@@ -370,9 +403,9 @@ __global__ void runReducersKernel(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH
 
     curandState &state = states[idx];
 
-    reducersU[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % 5);
-    reducersV[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % 5);
-    reducersW[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % 5);
+    reducersU[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % MIX_MODE);
+    reducersV[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % MIX_MODE);
+    reducersW[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % MIX_MODE);
 
     reducersU[idx].reduce(state);
     reducersV[idx].reduce(state);
