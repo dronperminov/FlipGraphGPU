@@ -10,9 +10,11 @@ enum SelectSubexpressionMode {
     GREEDY_MODE = 0,
     GREEDY_ALTERNATIVE_MODE = 1,
     GREEDY_RANDOM_MODE = 2,
-    WEIGHTED_RANDOM_MODE = 3,
-    RANDOM_MODE = 4,
-    MIX_MODE = 5
+    GREEDY_INTERSECTIONS_MODE = 3,
+    WEIGHTED_RANDOM_MODE = 4,
+    RANDOM_MODE = 5,
+    MIX_MODE = 6,
+    POTENTIAL_MODE = 7
 };
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
@@ -27,12 +29,13 @@ class AdditionsReducer {
     int freshVariables;
     int naiveAdditions;
     int mode;
+    float potentialScale;
 
     __device__ __host__ void updateSubexpressions();
     __device__ __host__ void replaceSubexpression(const Pair &subexpression);
     __device__ __host__ void replaceExpression(int index, int i, int j, int varIndex);
 
-    __device__ __host__ bool containsVariable(int exprIndex, int variable, int &index) const;
+    __device__ __host__ bool containsVariables(int exprIndex, int variable1, int variable2, int &index1, int &index2) const;
     __device__ Pair selectSubexpression(int mode, curandState &state) const;
 
     void showVariable(int variable, bool first) const;
@@ -46,6 +49,7 @@ public:
     __device__ __host__ void setMode(int mode);
 
     __device__ __host__ int getAdditions() const;
+    __device__ __host__ int getMaxExpressionLength() const;
     __device__ __host__ int getNaiveAdditions() const;
     __device__ __host__ int getFreshVars() const;
     std::string getMode() const;
@@ -86,6 +90,9 @@ __device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
 __device__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::reduce(curandState &state) {
+    if (potentialScale == 0)
+        potentialScale = curand_uniform(&state);
+
     while (freshVariables < maxVariablesCount) {
         updateSubexpressions();
 
@@ -131,6 +138,7 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
 __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::setMode(int mode) {
     this->mode = mode;
+    potentialScale = 0;
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
@@ -141,6 +149,17 @@ __device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount,
         additions += expressionSizes[i] - 1;
 
     return additions;
+}
+
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
+__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getMaxExpressionLength() const {
+    int length = 0;
+
+    for (int i = 0; i < expressionsCount; i++)
+        if (expressionSizes[i] > length)
+            length = expressionSizes[i];
+
+    return length;
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
@@ -163,6 +182,12 @@ std::string AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressi
 
     if (mode == GREEDY_RANDOM_MODE)
         return "gr";
+
+    if (mode == GREEDY_INTERSECTIONS_MODE)
+        return "gi" + std::to_string(int(potentialScale * 100));
+
+    if (mode == POTENTIAL_MODE)
+        return "p" + std::to_string(int(potentialScale * 100));
 
     if (mode == WEIGHTED_RANDOM_MODE)
         return "wr";
@@ -211,10 +236,10 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
     int i, j;
 
     for (int index = 0; index < expressionsCount; index++) {
-        if (containsVariable(index, subexpression.i, i) && containsVariable(index, subexpression.j, j)) {
+        if (containsVariables(index, subexpression.i, subexpression.j, i, j)) {
             replaceExpression(index, i, j, varIndex);
         }
-        else if (containsVariable(index, -subexpression.i, i) && containsVariable(index, -subexpression.j, j)) {
+        else if (containsVariables(index, -subexpression.i, -subexpression.j, i, j)) {
             replaceExpression(index, i, j, -varIndex);
         }
     }
@@ -225,11 +250,22 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::containsVariable(int exprIndex, int variable, int &index) const {
+__device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::containsVariables(int exprIndex, int variable1, int variable2, int &index1, int &index2) const {
+    index1 = -1;
+    index2 = -1;
+
     for (int i = 0; i < expressionSizes[exprIndex]; i++) {
-        if (expressions[exprIndex][i] == variable) {
-            index = i;
-            return true;
+        if (expressions[exprIndex][i] == variable1) {
+            index1 = i;
+
+            if (index2 != -1)
+                return true;
+        }
+        else if (expressions[exprIndex][i] == variable2) {
+            index2 = i;
+
+            if (index1 != -1)
+                return true;
         }
     }
 
@@ -247,8 +283,72 @@ __device__ Pair AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpr
     if (mode == GREEDY_RANDOM_MODE)
         return subexpressions.getGreedyRandom(state);
 
+    if (mode == GREEDY_INTERSECTIONS_MODE)
+        return subexpressions.getGreedyIntersections(state, potentialScale);
+
     if (mode == WEIGHTED_RANDOM_MODE)
         return subexpressions.getWeightedRandom(state);
+
+    if (mode == POTENTIAL_MODE) {
+        int imax = 0;
+        float maxScore = 0;
+
+        for (int si = 0; si < subexpressions.size; si++) {
+            Pair pair = subexpressions.pairs[si];
+            float score = pair.count - 1;
+
+            PairsCounter<maxExpressionLength * (maxExpressionLength - 1) / 2> newPairs;
+            int varIndex = realVariables + freshVariables + 1;
+
+            for (int ei = 0; ei < expressionsCount; ei++) {
+                int i, j;
+                if (containsVariables(ei, pair.i, pair.j, i, j)) {
+                    for (int index1 = 0; index1 < expressionSizes[ei]; index1++) {
+                        if (index1 == j)
+                            continue;
+
+                        for (int index2 = index1 + 1; index2 < expressionSizes[ei]; index2++) {
+                            if (index2 == j)
+                                continue;
+
+                            newPairs.insert(index1 == i ? varIndex : expressions[ei][index1], index2 == i ? varIndex : expressions[ei][index2]);
+                        }
+                    }
+                }
+                else if (containsVariables(ei, -pair.i, -pair.j, i, j)) {
+                    for (int index1 = 0; index1 < expressionSizes[ei]; index1++) {
+                        if (index1 == j)
+                            continue;
+
+                        for (int index2 = index1 + 1; index2 < expressionSizes[ei]; index2++) {
+                            if (index2 == j)
+                                continue;
+
+                            newPairs.insert(index1 == i ? -varIndex : expressions[ei][index1], index2 == i ? -varIndex : expressions[ei][index2]);
+                        }
+                    }
+                }
+                else {
+                    for (int index1 = 0; index1 < expressionSizes[ei]; index1++)
+                        for (int index2 = index1 + 1; index2 < expressionSizes[ei]; index2++)
+                            newPairs.insert(expressions[ei][index1], expressions[ei][index2]);
+                }
+            }
+
+            int potential = 0;
+            for (int i = 0; i < newPairs.size; i++)
+                potential += newPairs.pairs[i].count - 1;
+
+            score += potentialScale * potential;
+
+            if (si == 0 || score > maxScore) {
+                maxScore = score;
+                imax = si;
+            }
+        }
+
+        return subexpressions.pairs[imax];
+    }
 
     return subexpressions.getRandom(state);
 }

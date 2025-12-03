@@ -9,12 +9,18 @@ struct Pair {
     int i;
     int j;
     int count;
+
+    __device__ __host__ bool intersects(const Pair &pair) const {
+        return i == pair.i || i == abs(pair.j) || abs(j) == pair.i || abs(j) == abs(pair.j);
+    }
 };
 
 template <size_t maxPairs>
 class PairsCounter {
+public:
     Pair pairs[maxPairs];
     int size;
+private:
     int topSize;
     int maxCount;
     int hashTable[maxPairs * 2];
@@ -33,6 +39,7 @@ public:
     __device__ __host__ Pair getGreedy() const;
     __device__ Pair getGreedyAlternative(curandState &state) const;
     __device__ Pair getGreedyRandom(curandState &state) const;
+    __device__ Pair getGreedyIntersections(curandState &state, float scale) const;
     __device__ Pair getWeightedRandom(curandState &state) const;
     __device__ Pair getRandom(curandState &state) const;
 
@@ -135,6 +142,29 @@ __device__ Pair PairsCounter<maxPairs>::getGreedyRandom(curandState &state) cons
         return pairs[curand(&state) % topSize];
 
     return pairs[curand(&state) % size];
+}
+
+template <size_t maxPairs>
+__device__ Pair PairsCounter<maxPairs>::getGreedyIntersections(curandState &state, float scale) const {
+    int imax = 0;
+    float maxScore = 0;
+
+    for (int i = 0; i < size; i++) {
+        int intersections = 0;
+
+        for (int j = 0; j < size; j++)
+            if (i != j)
+                intersections += pairs[i].intersects(pairs[j]) ? curand(&state) % pairs[j].count : pairs[j].count - 1;
+
+        float score = pairs[i].count - 1 + scale * intersections;
+
+        if (score > maxScore) {
+            maxScore = score;
+            imax = i;
+        }
+    }
+
+    return pairs[imax];
 }
 
 template <size_t maxPairs>

@@ -114,6 +114,7 @@ void SchemeAdditionsReducer::initialize() {
     reducedAdditions = bestAdditions[0] + bestAdditions[1] + bestAdditions[2];
 
     std::cout << "Readed scheme uses " << bestAdditions[0] << " + " << bestAdditions[1] << " + " << bestAdditions[2] << " = " << reducedAdditions << " additions [naive]" << std::endl;
+    std::cout << "Max expression length: " << reducersU[count].getMaxExpressionLength() << " " << reducersV[count].getMaxExpressionLength() << " " << reducersW[count].getMaxExpressionLength() << std::endl;
 }
 
 void SchemeAdditionsReducer::reduceIteration(int iteration) {
@@ -402,10 +403,18 @@ __global__ void runReducersKernel(AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH
     copySchemeToReducers(reducersU, reducersV, reducersW, idx, schemes[idx % schemesCount]);
 
     curandState &state = states[idx];
+    int modes[12] = {
+        GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE,
+        GREEDY_ALTERNATIVE_MODE, GREEDY_ALTERNATIVE_MODE,
+        GREEDY_RANDOM_MODE,
+        WEIGHTED_RANDOM_MODE,
+        MIX_MODE,
+        POTENTIAL_MODE, POTENTIAL_MODE
+    };
 
-    reducersU[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % MIX_MODE);
-    reducersV[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % MIX_MODE);
-    reducersW[idx].setMode(idx == 0 ? 0 : 1 + curand(&state) % MIX_MODE);
+    reducersU[idx].setMode(idx == 0 ? 0 : modes[curand(&state) % 12]);
+    reducersV[idx].setMode(idx == 0 ? 0 : modes[curand(&state) % 12]);
+    reducersW[idx].setMode(idx == 0 ? 0 : modes[curand(&state) % 12]);
 
     reducersU[idx].reduce(state);
     reducersV[idx].reduce(state);
