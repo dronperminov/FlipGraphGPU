@@ -25,18 +25,22 @@ class SchemeAdditionsReducer {
 
     int topCount;
     int reducedAdditions;
+    int reducedFreshVars;
     int bestAdditions[3];
+    int bestFreshVars[3];
     std::vector<int> indices[3];
 
-    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU;
-    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV;
-    AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW;
+    AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU;
+    AdditionsReducer<MAX_V_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV;
+    AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW;
     SchemeInteger *schemes;
     curandState *states;
 
     void initialize();
     void reduceIteration(int iteration);
     bool updateBest(int startAdditions);
+    void updateBestIndependent();
+    void updateBestTogether();
     void report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes);
     void save() const;
 
@@ -52,9 +56,9 @@ public:
 };
 
 __global__ void initializeKernel(
-    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU,
-    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV,
-    AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW,
+    AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU,
+    AdditionsReducer<MAX_V_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV,
+    AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW,
     SchemeInteger *schemes,
     curandState *states,
     int count,
@@ -65,17 +69,17 @@ __global__ void initializeKernel(
 __global__ void flipSchemesKernel(SchemeInteger *schemes, curandState *states, int schemesCount, int maxFlips);
 
 __device__ void copySchemeToReducers(
-    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU,
-    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV,
-    AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW,
+    AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU,
+    AdditionsReducer<MAX_V_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV,
+    AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW,
     int idx,
     const SchemeInteger &scheme
 );
 
 __global__ void runReducersKernel(
-    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersU,
-    AdditionsReducer<MAX_UV_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_UV_VARIABLES> *reducersV,
-    AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_REAL_W_VARIABLES> *reducersW,
+    AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU,
+    AdditionsReducer<MAX_V_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV,
+    AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW,
     SchemeInteger *schemes,
     curandState *states,
     int count,

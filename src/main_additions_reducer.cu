@@ -43,11 +43,10 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << "Compiled configuration:" << std::endl;
+    std::cout << "- max expressions count (U / V / W): " << MAX_U_EXPRESSIONS << " / " << MAX_V_EXPRESSIONS << " / " << MAX_W_EXPRESSIONS << std::endl;
+    std::cout << "- max real variables (U / V / W): " << MAX_U_REAL_VARIABLES << " / " << MAX_V_REAL_VARIABLES << " / " << MAX_W_REAL_VARIABLES << std::endl;
+    std::cout << "- max subexpressions (U / V / W): " << MAX_U_SUBEXPRESSIONS << " / " << MAX_V_SUBEXPRESSIONS << " / " << MAX_W_SUBEXPRESSIONS << std::endl;
     std::cout << "- max fresh variables: " << MAX_FRESH_VARIABLES << std::endl;
-    std::cout << "- max UV variables: " << MAX_REAL_UV_VARIABLES << std::endl;
-    std::cout << "- max W variables: " << MAX_REAL_W_VARIABLES << std::endl;
-    std::cout << "- max UV expressions: " << MAX_UV_EXPRESSIONS << std::endl;
-    std::cout << "- max W expressions: " << MAX_W_EXPRESSIONS << std::endl;
     std::cout << std::endl;
 
     std::cout << "Start additions reduction algorithm" << std::endl;

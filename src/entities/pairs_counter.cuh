@@ -17,10 +17,8 @@ struct Pair {
 
 template <size_t maxPairs>
 class PairsCounter {
-public:
     Pair pairs[maxPairs];
     int size;
-private:
     int topSize;
     int maxCount;
     int hashTable[maxPairs * 2];
@@ -150,11 +148,19 @@ __device__ Pair PairsCounter<maxPairs>::getGreedyIntersections(curandState &stat
     float maxScore = 0;
 
     for (int i = 0; i < size; i++) {
-        int intersections = 0;
+        float intersections = 0;
 
-        for (int j = 0; j < size; j++)
-            if (i != j)
-                intersections += pairs[i].intersects(pairs[j]) ? curand(&state) % pairs[j].count : pairs[j].count - 1;
+        for (int j = 0; j < size; j++) {
+            if (i == j)
+                continue;
+
+            if (!pairs[i].intersects(pairs[j])) {
+                intersections += pairs[j].count - 1;
+            }
+            else {
+                intersections += curand(&state) % 2 ? 0 : 0.66 * (pairs[j].count);
+            }
+        }
 
         float score = pairs[i].count - 1 + scale * intersections;
 

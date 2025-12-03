@@ -146,6 +146,37 @@ __device__ __host__ int SchemeInteger::getComplexity() const {
     return count - 2 * m - nn[2];
 }
 
+__device__ __host__ int SchemeInteger::getMaxRealVariables(int position) const {
+    int maxVariables = 0;
+
+    if (position == 2) {
+        for (int i = 0; i < nn[position]; i++) {
+            int variables = 0;
+
+            for (int index = 0; index < m; index++)
+                if (uvw[position][index][i])
+                    variables++;
+
+            if (variables > maxVariables)
+                maxVariables = variables;
+        }
+    }
+    else {
+        for (int index = 0; index < m; index++) {
+            int variables = 0;
+
+            for (int i = 0; i < nn[position]; i++)
+                if (uvw[position][index][i])
+                    variables++;
+
+            if (variables > maxVariables)
+                maxVariables = variables;
+        }
+    }
+
+    return maxVariables;
+}
+
 __device__ __host__ void SchemeInteger::initFlips() {
     for (int i = 0; i < 3; i++) {
         flips[i].clear();

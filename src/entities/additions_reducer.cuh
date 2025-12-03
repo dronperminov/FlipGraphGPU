@@ -13,23 +13,22 @@ enum SelectSubexpressionMode {
     GREEDY_INTERSECTIONS_MODE = 3,
     WEIGHTED_RANDOM_MODE = 4,
     RANDOM_MODE = 5,
-    MIX_MODE = 6,
-    POTENTIAL_MODE = 7
+    MIX_MODE = 6
 };
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
 class AdditionsReducer {
     int expressions[maxExpressionsCount][maxExpressionLength];
     int expressionSizes[maxExpressionsCount];
     int variables[maxVariablesCount][2];
-    PairsCounter<maxExpressionLength * (maxExpressionLength - 1) / 2> subexpressions;
+    PairsCounter<maxSubexpressionsCount> subexpressions;
 
     int expressionsCount;
     int realVariables;
     int freshVariables;
     int naiveAdditions;
     int mode;
-    float potentialScale;
+    float intersectionsScale;
 
     __device__ __host__ void updateSubexpressions();
     __device__ __host__ void replaceSubexpression(const Pair &subexpression);
@@ -44,12 +43,12 @@ public:
 
     __device__ __host__ bool addExpression(int *values, int count);
     __device__ void reduce(curandState &state);
-    __device__ __host__ void copyFrom(const AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength> &reducer);
+    __device__ __host__ void copyFrom(const AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount> &reducer);
     __device__ __host__ void clear();
     __device__ __host__ void setMode(int mode);
 
     __device__ __host__ int getAdditions() const;
-    __device__ __host__ int getMaxExpressionLength() const;
+    __device__ __host__ int getMaxRealVariables() const;
     __device__ __host__ int getNaiveAdditions() const;
     __device__ __host__ int getFreshVars() const;
     std::string getMode() const;
@@ -58,8 +57,8 @@ public:
     void write(std::ostream &os, const std::string &name, const std::string &indent) const;
 };
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::AdditionsReducer() {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::AdditionsReducer() {
     expressionsCount = 0;
     realVariables = 0;
     freshVariables = 0;
@@ -67,8 +66,8 @@ __device__ __host__ AdditionsReducer<maxExpressionsCount, maxVariablesCount, max
     mode = GREEDY_MODE;
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::addExpression(int *values, int count) {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::addExpression(int *values, int count) {
     int size = 0;
 
     for (int i = 0; i < count; i++) {
@@ -88,10 +87,10 @@ __device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount
     return true;
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::reduce(curandState &state) {
-    if (potentialScale == 0)
-        potentialScale = curand_uniform(&state);
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::reduce(curandState &state) {
+    if (intersectionsScale == 0)
+        intersectionsScale = curand_uniform(&state);
 
     while (freshVariables < maxVariablesCount) {
         updateSubexpressions();
@@ -105,8 +104,8 @@ __device__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpr
     }
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::copyFrom(const AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength> &reducer) {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::copyFrom(const AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount> &reducer) {
     expressionsCount = reducer.expressionsCount;
     realVariables = reducer.realVariables;
     freshVariables = reducer.freshVariables;
@@ -127,22 +126,22 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
     subexpressions.copyFrom(reducer.subexpressions);
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::clear() {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::clear() {
     expressionsCount = 0;
     realVariables = 0;
     freshVariables = 0;
     naiveAdditions = 0;
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::setMode(int mode) {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::setMode(int mode) {
     this->mode = mode;
-    potentialScale = 0;
+    intersectionsScale = 0;
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getAdditions() const {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::getAdditions() const {
     int additions = freshVariables;
 
     for (int i = 0; i < expressionsCount; i++)
@@ -151,29 +150,29 @@ __device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount,
     return additions;
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getMaxExpressionLength() const {
-    int length = 0;
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::getMaxRealVariables() const {
+    int variables = 0;
 
     for (int i = 0; i < expressionsCount; i++)
-        if (expressionSizes[i] > length)
-            length = expressionSizes[i];
+        if (expressionSizes[i] > variables)
+            variables = expressionSizes[i];
 
-    return length;
+    return variables;
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getNaiveAdditions() const {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::getNaiveAdditions() const {
     return naiveAdditions;
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getFreshVars() const {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ int AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::getFreshVars() const {
     return freshVariables;
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-std::string AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::getMode() const {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+std::string AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::getMode() const {
     if (mode == GREEDY_MODE)
         return "g";
 
@@ -184,10 +183,7 @@ std::string AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressi
         return "gr";
 
     if (mode == GREEDY_INTERSECTIONS_MODE)
-        return "gi" + std::to_string(int(potentialScale * 100));
-
-    if (mode == POTENTIAL_MODE)
-        return "p" + std::to_string(int(potentialScale * 100));
+        return "gi" + std::to_string(int(intersectionsScale * 100));
 
     if (mode == WEIGHTED_RANDOM_MODE)
         return "wr";
@@ -198,8 +194,8 @@ std::string AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressi
     return "mix";
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::show() const {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::show() const {
     std::cout << "fresh vars: " << freshVariables << std::endl;
     for (int i = 0; i < freshVariables; i++) {
         std::cout << "t" << (i + 1) << " = ";
@@ -218,8 +214,8 @@ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLengt
     }
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::updateSubexpressions() {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::updateSubexpressions() {
     subexpressions.clear();
 
     for (int index = 0; index < expressionsCount; index++)
@@ -230,8 +226,8 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
     subexpressions.sort();
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::replaceSubexpression(const Pair &subexpression) {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::replaceSubexpression(const Pair &subexpression) {
     int varIndex = realVariables + freshVariables + 1;
     int i, j;
 
@@ -249,8 +245,8 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
     freshVariables++;
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::containsVariables(int exprIndex, int variable1, int variable2, int &index1, int &index2) const {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::containsVariables(int exprIndex, int variable1, int variable2, int &index1, int &index2) const {
     index1 = -1;
     index2 = -1;
 
@@ -272,8 +268,8 @@ __device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount
     return false;
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ Pair AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::selectSubexpression(int mode, curandState &state) const {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ Pair AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::selectSubexpression(int mode, curandState &state) const {
     if (mode == GREEDY_MODE)
         return subexpressions.getGreedy();
 
@@ -284,84 +280,23 @@ __device__ Pair AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpr
         return subexpressions.getGreedyRandom(state);
 
     if (mode == GREEDY_INTERSECTIONS_MODE)
-        return subexpressions.getGreedyIntersections(state, potentialScale);
+        return subexpressions.getGreedyIntersections(state, intersectionsScale);
 
     if (mode == WEIGHTED_RANDOM_MODE)
         return subexpressions.getWeightedRandom(state);
 
-    if (mode == POTENTIAL_MODE) {
-        int imax = 0;
-        float maxScore = 0;
-
-        for (int si = 0; si < subexpressions.size; si++) {
-            Pair pair = subexpressions.pairs[si];
-            float score = pair.count - 1;
-
-            PairsCounter<maxExpressionLength * (maxExpressionLength - 1) / 2> newPairs;
-            int varIndex = realVariables + freshVariables + 1;
-
-            for (int ei = 0; ei < expressionsCount; ei++) {
-                int i, j;
-                if (containsVariables(ei, pair.i, pair.j, i, j)) {
-                    for (int index1 = 0; index1 < expressionSizes[ei]; index1++) {
-                        if (index1 == j)
-                            continue;
-
-                        for (int index2 = index1 + 1; index2 < expressionSizes[ei]; index2++) {
-                            if (index2 == j)
-                                continue;
-
-                            newPairs.insert(index1 == i ? varIndex : expressions[ei][index1], index2 == i ? varIndex : expressions[ei][index2]);
-                        }
-                    }
-                }
-                else if (containsVariables(ei, -pair.i, -pair.j, i, j)) {
-                    for (int index1 = 0; index1 < expressionSizes[ei]; index1++) {
-                        if (index1 == j)
-                            continue;
-
-                        for (int index2 = index1 + 1; index2 < expressionSizes[ei]; index2++) {
-                            if (index2 == j)
-                                continue;
-
-                            newPairs.insert(index1 == i ? -varIndex : expressions[ei][index1], index2 == i ? -varIndex : expressions[ei][index2]);
-                        }
-                    }
-                }
-                else {
-                    for (int index1 = 0; index1 < expressionSizes[ei]; index1++)
-                        for (int index2 = index1 + 1; index2 < expressionSizes[ei]; index2++)
-                            newPairs.insert(expressions[ei][index1], expressions[ei][index2]);
-                }
-            }
-
-            int potential = 0;
-            for (int i = 0; i < newPairs.size; i++)
-                potential += newPairs.pairs[i].count - 1;
-
-            score += potentialScale * potential;
-
-            if (si == 0 || score > maxScore) {
-                maxScore = score;
-                imax = si;
-            }
-        }
-
-        return subexpressions.pairs[imax];
-    }
-
     return subexpressions.getRandom(state);
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::replaceExpression(int index, int i, int j, int varIndex) {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::replaceExpression(int index, int i, int j, int varIndex) {
     int last = --expressionSizes[index];
     expressions[index][i] = varIndex;
     expressions[index][j] = expressions[index][last];
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::showVariable(int variable, bool first) const {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::showVariable(int variable, bool first) const {
     if (variable < 0)
         std::cout << "- ";
     else if (!first)
@@ -375,8 +310,8 @@ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLengt
         std::cout << "t" << (index - realVariables) << " ";
 }
 
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength>
-void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength>::write(std::ostream &os, const std::string &name, const std::string &indent) const {
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::write(std::ostream &os, const std::string &name, const std::string &indent) const {
     os << indent << "\"" << name << "_fresh\": [" << std::endl;
 
     for (int i = 0; i < freshVariables; i++) {

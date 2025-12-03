@@ -27,6 +27,8 @@ struct SchemeInteger {
     __host__ bool read(std::istream &is, int n1, int n2, int n3, int m, bool checkValidity = true);
 
     __device__ __host__ int getComplexity() const;
+    __device__ __host__ int getMaxRealVariables(int position) const;
+
     __device__ __host__ bool isValidProject(int i, int minN = MIN_PROJECT_N) const;
     __device__ __host__ bool isValidExtension(int i, int maxN = MAX_EXTENSION_N) const;
     __device__ __host__ bool isValidProduct(int i, int maxN = MAX_EXTENSION_N) const;
