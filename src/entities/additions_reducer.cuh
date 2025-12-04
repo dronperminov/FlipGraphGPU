@@ -12,8 +12,8 @@ enum SelectSubexpressionMode {
     GREEDY_RANDOM_MODE = 2,
     GREEDY_INTERSECTIONS_MODE = 3,
     WEIGHTED_RANDOM_MODE = 4,
-    RANDOM_MODE = 5,
-    MIX_MODE = 6
+    MIX_MODE = 5,
+    RANDOM_MODE = 6,
 };
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
@@ -28,7 +28,7 @@ class AdditionsReducer {
     int freshVariables;
     int naiveAdditions;
     int mode;
-    float intersectionsScale;
+    float scale;
 
     __device__ __host__ void updateSubexpressions();
     __device__ __host__ void replaceSubexpression(const Pair &subexpression);
@@ -44,6 +44,7 @@ public:
     __device__ __host__ bool addExpression(int *values, int count);
     __device__ void reduce(curandState &state);
     __device__ __host__ void copyFrom(const AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount> &reducer);
+    __device__ __host__ void partialInitialize(const AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount> &reducer, int copy);
     __device__ __host__ void clear();
     __device__ __host__ void setMode(int mode);
 
@@ -89,8 +90,8 @@ __device__ __host__ bool AdditionsReducer<maxExpressionsCount, maxVariablesCount
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
 __device__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::reduce(curandState &state) {
-    if (intersectionsScale == 0)
-        intersectionsScale = curand_uniform(&state);
+    if (scale < 0)
+        scale = curand_uniform(&state) / 2;
 
     while (freshVariables < maxVariablesCount) {
         updateSubexpressions();
@@ -127,6 +128,16 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
+__device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::partialInitialize(const AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount> &reducer, int count) {
+    for (int index = 0; index < count && index < reducer.freshVariables; index++) {
+        int i = reducer.variables[index][0];
+        int j = reducer.variables[index][1];
+
+        replaceSubexpression({i, j, 0});
+    }
+}
+
+template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
 __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::clear() {
     expressionsCount = 0;
     realVariables = 0;
@@ -137,7 +148,7 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
 __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::setMode(int mode) {
     this->mode = mode;
-    intersectionsScale = 0;
+    scale = -1;
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
@@ -180,10 +191,10 @@ std::string AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressi
         return "ga";
 
     if (mode == GREEDY_RANDOM_MODE)
-        return "gr";
+        return "gr" + std::to_string(int(scale * 100));
 
     if (mode == GREEDY_INTERSECTIONS_MODE)
-        return "gi" + std::to_string(int(intersectionsScale * 100));
+        return "gi" + std::to_string(int(scale * 100));
 
     if (mode == WEIGHTED_RANDOM_MODE)
         return "wr";
@@ -277,10 +288,10 @@ __device__ Pair AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpr
         return subexpressions.getGreedyAlternative(state);
 
     if (mode == GREEDY_RANDOM_MODE)
-        return subexpressions.getGreedyRandom(state);
+        return subexpressions.getGreedyRandom(state, scale);
 
     if (mode == GREEDY_INTERSECTIONS_MODE)
-        return subexpressions.getGreedyIntersections(state, intersectionsScale);
+        return subexpressions.getGreedyIntersections(state, scale);
 
     if (mode == WEIGHTED_RANDOM_MODE)
         return subexpressions.getWeightedRandom(state);

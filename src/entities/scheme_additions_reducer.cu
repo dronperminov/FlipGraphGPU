@@ -157,12 +157,12 @@ void SchemeAdditionsReducer::reduceIteration(int iteration) {
         CUDA_CHECK(cudaDeviceSynchronize());
     }
 
-    runReducersKernel<<<numBlocks, blockSize>>>(reducersU, reducersV, reducersW, schemes, states, count, schemesCount);
+    runReducersKernel<<<numBlocks, blockSize>>>(reducersU, reducersV, reducersW, schemes, states, count, schemesCount, maxFlips == 0);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-void SchemeAdditionsReducer::updateBestIndependent() {
+bool SchemeAdditionsReducer::updateBestIndependent() {
     std::partial_sort(indices[0].begin(), indices[0].begin() + topCount, indices[0].end(), [this](int index1, int index2) {
         int additions1 = reducersU[index1].getAdditions();
         int additions2 = reducersU[index2].getAdditions();
@@ -205,26 +205,33 @@ void SchemeAdditionsReducer::updateBestIndependent() {
     int vf = reducersV[vi].getFreshVars();
     int wf = reducersW[wi].getFreshVars();
 
+    bool updated = false;
+
     if (ua < bestAdditions[0] || (ua == bestAdditions[0] && uf < bestFreshVars[0])) {
         bestAdditions[0] = ua;
         bestFreshVars[0] = uf;
         reducersU[count].copyFrom(reducersU[ui]);
+        updated = true;
     }
 
     if (va < bestAdditions[1] || (va == bestAdditions[1] && vf < bestFreshVars[1])) {
         bestAdditions[1] = va;
         bestFreshVars[1] = vf;
         reducersV[count].copyFrom(reducersV[vi]);
+        updated = true;
     }
 
     if (wa < bestAdditions[2] || (wa == bestAdditions[2] && wf < bestFreshVars[2])) {
         bestAdditions[2] = wa;
         bestFreshVars[2] = wf;
         reducersW[count].copyFrom(reducersW[wi]);
+        updated = true;
     }
+
+    return updated;
 }
 
-void SchemeAdditionsReducer::updateBestTogether() {
+bool SchemeAdditionsReducer::updateBestTogether() {
     std::partial_sort(indices[0].begin(), indices[0].begin() + topCount, indices[0].end(), [this](int index1, int index2) {
         int additions1 = reducersU[index1].getAdditions() + reducersV[index1].getAdditions() + reducersW[index1].getAdditions();
         int additions2 = reducersU[index2].getAdditions() + reducersV[index2].getAdditions() + reducersW[index2].getAdditions();
@@ -261,21 +268,18 @@ void SchemeAdditionsReducer::updateBestTogether() {
         reducersU[count].copyFrom(reducersU[topIndex]);
         reducersV[count].copyFrom(reducersV[topIndex]);
         reducersW[count].copyFrom(reducersW[topIndex]);
+        return true;
     }
+
+    return false;
 }
 
 bool SchemeAdditionsReducer::updateBest(int startAdditions) {
-    if (maxFlips == 0) {
-        updateBestIndependent();
-    }
-    else {
-        updateBestTogether();
-    }
-
+    bool updated = maxFlips == 0 ? updateBestIndependent() : updateBestTogether();
     int additions = bestAdditions[0] + bestAdditions[1] + bestAdditions[2];
     int freshVars = bestFreshVars[0] + bestFreshVars[1] + bestFreshVars[2];
 
-    if (!(additions < reducedAdditions || (additions == reducedAdditions && freshVars < reducedFreshVars)))
+    if (!updated)
         return false;
 
     if (additions < reducedAdditions)
@@ -468,7 +472,7 @@ __device__ void copySchemeToReducers(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRE
     }
 }
 
-__global__ void runReducersKernel(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU, AdditionsReducer<MAX_V_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW, SchemeInteger *schemes, curandState *states, int count, int schemesCount) {
+__global__ void runReducersKernel(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU, AdditionsReducer<MAX_V_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW, SchemeInteger *schemes, curandState *states, int count, int schemesCount, bool independent) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
         return;
@@ -478,10 +482,9 @@ __global__ void runReducersKernel(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_
     curandState &state = states[idx];
 
     int modes[] = {
-        GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE,
-        GREEDY_ALTERNATIVE_MODE, GREEDY_ALTERNATIVE_MODE,
-        GREEDY_RANDOM_MODE,
-        WEIGHTED_RANDOM_MODE,
+        GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE, GREEDY_INTERSECTIONS_MODE,
+        GREEDY_ALTERNATIVE_MODE, GREEDY_ALTERNATIVE_MODE, GREEDY_ALTERNATIVE_MODE, GREEDY_ALTERNATIVE_MODE,
+        GREEDY_RANDOM_MODE, GREEDY_RANDOM_MODE,
         MIX_MODE
     };
 
@@ -490,6 +493,27 @@ __global__ void runReducersKernel(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_
     reducersU[idx].setMode(idx == 0 ? 0 : modes[curand(&state) % modesCount]);
     reducersV[idx].setMode(idx == 0 ? 0 : modes[curand(&state) % modesCount]);
     reducersW[idx].setMode(idx == 0 ? 0 : modes[curand(&state) % modesCount]);
+
+    if (independent) {
+        if (curand_uniform(&state) < 0.3 && reducersU[count].getFreshVars() > 0)
+            reducersU[idx].partialInitialize(reducersU[count], 1 + curand(&state) % reducersU[count].getFreshVars());
+
+        if (curand_uniform(&state) < 0.3 && reducersV[count].getFreshVars() > 0)
+            reducersV[idx].partialInitialize(reducersV[count], 1 + curand(&state) % reducersV[count].getFreshVars());
+
+        if (curand_uniform(&state) < 0.3 && reducersW[count].getFreshVars() > 0)
+            reducersW[idx].partialInitialize(reducersW[count], 1 + curand(&state) % reducersW[count].getFreshVars());
+    }
+    else if (curand_uniform(&state) < 0.3) {
+        if (reducersU[count].getFreshVars() > 0)
+            reducersU[idx].partialInitialize(reducersU[count], 1 + curand(&state) % reducersU[count].getFreshVars());
+
+        if (reducersV[count].getFreshVars() > 0)
+            reducersV[idx].partialInitialize(reducersV[count], 1 + curand(&state) % reducersV[count].getFreshVars());
+
+        if (reducersW[count].getFreshVars() > 0)
+            reducersW[idx].partialInitialize(reducersW[count], 1 + curand(&state) % reducersW[count].getFreshVars());
+    }
 
     reducersU[idx].reduce(state);
     reducersV[idx].reduce(state);

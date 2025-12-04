@@ -39,8 +39,8 @@ class SchemeAdditionsReducer {
     void initialize();
     void reduceIteration(int iteration);
     bool updateBest(int startAdditions);
-    void updateBestIndependent();
-    void updateBestTogether();
+    bool updateBestIndependent();
+    bool updateBestTogether();
     void report(std::chrono::high_resolution_clock::time_point startTime, int iteration, const std::vector<double> &elapsedTimes);
     void save() const;
 
@@ -83,5 +83,6 @@ __global__ void runReducersKernel(
     SchemeInteger *schemes,
     curandState *states,
     int count,
-    int schemesCount
+    int schemesCount,
+    bool independent
 );

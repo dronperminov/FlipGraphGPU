@@ -36,7 +36,7 @@ public:
 
     __device__ __host__ Pair getGreedy() const;
     __device__ Pair getGreedyAlternative(curandState &state) const;
-    __device__ Pair getGreedyRandom(curandState &state) const;
+    __device__ Pair getGreedyRandom(curandState &state, float scale) const;
     __device__ Pair getGreedyIntersections(curandState &state, float scale) const;
     __device__ Pair getWeightedRandom(curandState &state) const;
     __device__ Pair getRandom(curandState &state) const;
@@ -135,11 +135,11 @@ __device__ Pair PairsCounter<maxPairs>::getGreedyAlternative(curandState &state)
 }
 
 template <size_t maxPairs>
-__device__ Pair PairsCounter<maxPairs>::getGreedyRandom(curandState &state) const {
-    if (curand_uniform(&state) < 0.8)
-        return pairs[curand(&state) % topSize];
+__device__ Pair PairsCounter<maxPairs>::getGreedyRandom(curandState &state, float scale) const {
+    if (curand_uniform(&state) < scale)
+        return pairs[curand(&state) % size];
 
-    return pairs[curand(&state) % size];
+    return pairs[curand(&state) % topSize];
 }
 
 template <size_t maxPairs>
@@ -158,7 +158,7 @@ __device__ Pair PairsCounter<maxPairs>::getGreedyIntersections(curandState &stat
                 intersections += pairs[j].count - 1;
             }
             else {
-                intersections += curand(&state) % 2 ? 0 : 0.66 * (pairs[j].count);
+                intersections += curand(&state) % 2 ? 0 : 0.69 * (pairs[j].count);
             }
         }
 
