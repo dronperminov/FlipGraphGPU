@@ -19,9 +19,9 @@ SchemeAdditionsReducer::SchemeAdditionsReducer(int count, int schemesCount, int 
     }
 
     std::cout << "Start memory allocating" << std::endl;
-    CUDA_CHECK(cudaMallocManaged(&reducersU, (count + 1) * sizeof(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS>)));
-    CUDA_CHECK(cudaMallocManaged(&reducersV, (count + 1) * sizeof(AdditionsReducer<MAX_V_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS>)));
-    CUDA_CHECK(cudaMallocManaged(&reducersW, (count + 1) * sizeof(AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS>)));
+    CUDA_CHECK(cudaMallocManaged(&reducersU, (count + 1) * sizeof(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_U_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS>)));
+    CUDA_CHECK(cudaMallocManaged(&reducersV, (count + 1) * sizeof(AdditionsReducer<MAX_V_EXPRESSIONS, MAX_V_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS>)));
+    CUDA_CHECK(cudaMallocManaged(&reducersW, (count + 1) * sizeof(AdditionsReducer<MAX_W_EXPRESSIONS, MAX_W_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS>)));
     CUDA_CHECK(cudaMallocManaged(&schemes, (count + 1) * sizeof(SchemeInteger)));
     CUDA_CHECK(cudaMallocManaged(&states, count * sizeof(curandState)));
 }
@@ -65,6 +65,24 @@ bool SchemeAdditionsReducer::read(std::ifstream &f) {
     int realW = schemes[0].getMaxRealVariables(2);
     if (realU > MAX_W_REAL_VARIABLES) {
         std::cout << "Error: real variables for W (" << realW << ") too big for compiled configuration (" << MAX_W_REAL_VARIABLES << ")" << std::endl;
+        return false;
+    }
+
+    int subexpressionsU = schemes[0].getMaxSubexpressions(0);
+    if (subexpressionsU > MAX_U_SUBEXPRESSIONS) {
+        std::cout << "Error: max subexpressions for U (" << subexpressionsU << ") too big for compiled configuration (" << MAX_U_SUBEXPRESSIONS << ")" << std::endl;
+        return false;
+    }
+
+    int subexpressionsV = schemes[0].getMaxSubexpressions(1);
+    if (subexpressionsV > MAX_V_SUBEXPRESSIONS) {
+        std::cout << "Error: max subexpressions for V (" << subexpressionsV << ") too big for compiled configuration (" << MAX_V_SUBEXPRESSIONS << ")" << std::endl;
+        return false;
+    }
+
+    int subexpressionsW = schemes[0].getMaxSubexpressions(2);
+    if (subexpressionsW > MAX_W_SUBEXPRESSIONS) {
+        std::cout << "Error: max subexpressions for W (" << subexpressionsW << ") too big for compiled configuration (" << MAX_W_SUBEXPRESSIONS << ")" << std::endl;
         return false;
     }
 
@@ -147,6 +165,7 @@ void SchemeAdditionsReducer::initialize() {
     std::cout << "- multiplications (rank): " << m << std::endl;
     std::cout << "- naive additions (U / V / W / total): " << bestAdditions[0] << " / " << bestAdditions[1] << " / " << bestAdditions[2] << " / " << reducedAdditions << std::endl;
     std::cout << "- max real variables (U / V / W): " << reducersU[count].getMaxRealVariables() << " / " << reducersV[count].getMaxRealVariables() << " / " << reducersW[count].getMaxRealVariables() << std::endl;
+    std::cout << "- max unique subexpressions (U / V / W): " << schemes[0].getMaxSubexpressions(0) << " / " << schemes[0].getMaxSubexpressions(1) << " / " << schemes[0].getMaxSubexpressions(2) << std::endl;
     std::cout << std::endl;
 }
 
@@ -411,7 +430,7 @@ std::string SchemeAdditionsReducer::getDimensions() const {
     return ss.str();
 }
 
-__global__ void initializeKernel(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU, AdditionsReducer<MAX_V_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW, SchemeInteger *schemes, curandState *states, int count, int schemesCount, int seed) {
+__global__ void initializeKernel(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_U_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU, AdditionsReducer<MAX_V_EXPRESSIONS, MAX_V_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_W_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW, SchemeInteger *schemes, curandState *states, int count, int schemesCount, int seed) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
         return;
@@ -441,7 +460,7 @@ __global__ void flipSchemesKernel(SchemeInteger *schemes, curandState *states, i
             break;
 }
 
-__device__ void copySchemeToReducers(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU, AdditionsReducer<MAX_V_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW, int idx, const SchemeInteger &scheme) {
+__device__ void copySchemeToReducers(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_U_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU, AdditionsReducer<MAX_V_EXPRESSIONS, MAX_V_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_W_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW, int idx, const SchemeInteger &scheme) {
     int u[MAX_U_REAL_VARIABLES];
     int v[MAX_V_REAL_VARIABLES];
     int w[MAX_W_REAL_VARIABLES];
@@ -472,7 +491,7 @@ __device__ void copySchemeToReducers(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRE
     }
 }
 
-__global__ void runReducersKernel(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU, AdditionsReducer<MAX_V_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW, SchemeInteger *schemes, curandState *states, int count, int schemesCount, bool independent) {
+__global__ void runReducersKernel(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_U_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU, AdditionsReducer<MAX_V_EXPRESSIONS, MAX_V_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_W_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW, SchemeInteger *schemes, curandState *states, int count, int schemesCount, bool independent) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
         return;

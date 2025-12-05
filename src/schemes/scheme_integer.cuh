@@ -28,6 +28,7 @@ struct SchemeInteger {
 
     __device__ __host__ int getComplexity() const;
     __device__ __host__ int getMaxRealVariables(int position) const;
+    __device__ __host__ int getMaxSubexpressions(int position) const;
 
     __device__ __host__ bool isValidProject(int i, int minN = MIN_PROJECT_N) const;
     __device__ __host__ bool isValidExtension(int i, int maxN = MAX_EXTENSION_N) const;
@@ -58,6 +59,7 @@ struct SchemeInteger {
     void show() const;
 private:
     __device__ __host__ bool validateEquation(int i, int j, int k) const;
+    __device__ __host__ void checkSubexpression(int v1, int v2, bool &pos, bool &neg) const;
 
     __device__ __host__ void initFlips();
     __device__ __host__ void removeZeroes();

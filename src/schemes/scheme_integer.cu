@@ -177,6 +177,55 @@ __device__ __host__ int SchemeInteger::getMaxRealVariables(int position) const {
     return maxVariables;
 }
 
+__device__ __host__ int SchemeInteger::getMaxSubexpressions(int position) const {
+    int maxSubexpressions = 0;
+
+    if (position == 2) {
+        for (int index1 = 0; index1 < m; index1++) {
+            for (int index2 = index1 + 1; index2 < m; index2++) {
+                bool pos = false;
+                bool neg = false;
+
+                for (int i = 0; i < nn[position] && (!pos || !neg); i++)
+                    checkSubexpression(uvw[position][index1][i], uvw[position][index2][i], pos, neg);
+
+                maxSubexpressions += int(pos) + int(neg);
+            }
+        }
+    }
+    else {
+        for (int i1 = 0; i1 < nn[position]; i1++) {
+            for (int i2 = i1 + 1; i2 < nn[position]; i2++) {
+                bool pos = false;
+                bool neg = false;
+
+                for (int index = 0; index < m && (!pos || !neg); index++)
+                    checkSubexpression(uvw[position][index][i1], uvw[position][index][i2], pos, neg);
+
+                maxSubexpressions += int(pos) + int(neg);
+            }
+        }
+    }
+
+    return maxSubexpressions;
+}
+
+__device__ __host__ void SchemeInteger::checkSubexpression(int v1, int v2, bool &pos, bool &neg) const {
+    if (!v1 || !v2)
+        return;
+
+    if (v1 < 0) {
+        v1 = -v1;
+        v2 = -v2;
+    }
+
+    if (v2 == 1)
+        pos = true;
+
+    if (v2 == -1)
+        neg = true;
+}
+
 __device__ __host__ void SchemeInteger::initFlips() {
     for (int i = 0; i < 3; i++) {
         flips[i].clear();
