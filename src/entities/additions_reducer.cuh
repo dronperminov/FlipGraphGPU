@@ -36,8 +36,6 @@ class AdditionsReducer {
 
     __device__ __host__ int binarySearch(const int *expression, int size, int value, int start) const;
     __device__ Pair selectSubexpression(int mode, curandState &state) const;
-
-    void showVariable(int variable, bool first) const;
 public:
     __device__ __host__ AdditionsReducer();
 
@@ -54,7 +52,6 @@ public:
     __device__ __host__ int getFreshVars() const;
     std::string getMode() const;
 
-    void show() const;
     void write(std::ostream &os, const std::string &name, const std::string &indent) const;
 };
 
@@ -207,26 +204,6 @@ std::string AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressi
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
-void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::show() const {
-    std::cout << "fresh vars: " << freshVariables << std::endl;
-    for (int i = 0; i < freshVariables; i++) {
-        std::cout << "t" << (i + 1) << " = ";
-        showVariable(variables[i][0], true);
-        showVariable(variables[i][1], false);
-        std::cout << std::endl;
-    }
-
-    std::cout << std::endl;
-    std::cout << "expressions: " << expressionsCount << std::endl;
-    for (int index = 0; index < expressionsCount; index++) {
-        for (int i = 0; i < expressionSizes[index]; i++)
-            showVariable(expressions[index][i], i == 0);
-
-        std::cout << std::endl;
-    }
-}
-
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
 __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::updateSubexpressions() {
     subexpressions.clear();
 
@@ -321,21 +298,6 @@ __device__ __host__ void AdditionsReducer<maxExpressionsCount, maxVariablesCount
 
     size--;
     expression[j] = varIndex;
-}
-
-template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
-void AdditionsReducer<maxExpressionsCount, maxVariablesCount, maxExpressionLength, maxSubexpressionsCount>::showVariable(int variable, bool first) const {
-    if (variable < 0)
-        std::cout << "- ";
-    else if (!first)
-        std::cout << "+ ";
-
-    int index = abs(variable);
-
-    if (index <= realVariables)
-        std::cout << "x" << index << " ";
-    else
-        std::cout << "t" << (index - realVariables) << " ";
 }
 
 template <size_t maxExpressionsCount, size_t maxVariablesCount, size_t maxExpressionLength, size_t maxSubexpressionsCount>
