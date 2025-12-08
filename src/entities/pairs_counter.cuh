@@ -17,11 +17,13 @@ struct Pair {
 
 template <size_t maxPairs>
 class PairsCounter {
+    static constexpr int capacity = maxPairs * 2 + 1;
+
     Pair pairs[maxPairs];
     int size;
     int topSize;
     int maxCount;
-    int hashTable[maxPairs * 2];
+    int hashTable[capacity];
 
     __device__ __host__ void canonizePair(int &i, int &j) const;
     __device__ __host__ unsigned int getHash(int i, int j) const;
@@ -51,7 +53,7 @@ __device__ __host__ PairsCounter<maxPairs>::PairsCounter() {
     topSize = 0;
     maxCount = 0;
 
-    for (int i = 0; i < maxPairs * 2; i++)
+    for (int i = 0; i < capacity; i++)
         hashTable[i] = -1;
 }
 
@@ -104,7 +106,7 @@ __device__ __host__ void PairsCounter<maxPairs>::clear() {
     topSize = 0;
     maxCount = 0;
 
-    for (int i = 0; i < maxPairs * 2; i++)
+    for (int i = 0; i < capacity; i++)
         hashTable[i] = -1;
 }
 
@@ -120,7 +122,7 @@ __device__ __host__ void PairsCounter<maxPairs>::copyFrom(const PairsCounter<max
         pairs[index].count = counter.pairs[index].count;
     }
 
-    for (int i = 0; i < maxPairs * 2; i++)
+    for (int i = 0; i < capacity; i++)
         hashTable[i] = counter.hashTable[i];
 }
 
@@ -225,7 +227,7 @@ __device__ __host__ void PairsCounter<maxPairs>::canonizePair(int &i, int &j) co
 template <size_t maxPairs>
 __device__ __host__ unsigned int PairsCounter<maxPairs>::getHash(int i, int j) const {
     unsigned int hash = (static_cast<unsigned int>(i) * 2654435761u) ^ (static_cast<unsigned int>(j) * 2246822519u);
-    return hash % (maxPairs * 2);
+    return hash % capacity;
 }
 
 template <size_t maxPairs>
@@ -233,7 +235,7 @@ __device__ __host__ int PairsCounter<maxPairs>::findOrCreateSlot(int i, int j) {
     canonizePair(i, j);
     unsigned int hash = getHash(i, j);
 
-    for (int attempts = 0; attempts < maxPairs * 2; attempts++) {
+    for (int attempts = 0; attempts < capacity; attempts++) {
         int index = hashTable[hash];
 
         if (index == -1) {
@@ -250,7 +252,7 @@ __device__ __host__ int PairsCounter<maxPairs>::findOrCreateSlot(int i, int j) {
         if (pairs[index].i == i && pairs[index].j == j)
             return index;
 
-        hash = (hash + 1) % (maxPairs * 2);
+        hash = (hash + 1) % capacity;
     }
 
     return -1;

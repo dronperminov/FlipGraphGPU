@@ -461,9 +461,9 @@ __global__ void flipSchemesKernel(SchemeInteger *schemes, curandState *states, i
 }
 
 __device__ void copySchemeToReducers(AdditionsReducer<MAX_U_EXPRESSIONS, MAX_U_FRESH_VARIABLES, MAX_U_REAL_VARIABLES, MAX_U_SUBEXPRESSIONS> *reducersU, AdditionsReducer<MAX_V_EXPRESSIONS, MAX_V_FRESH_VARIABLES, MAX_V_REAL_VARIABLES, MAX_V_SUBEXPRESSIONS> *reducersV, AdditionsReducer<MAX_W_EXPRESSIONS, MAX_W_FRESH_VARIABLES, MAX_W_REAL_VARIABLES, MAX_W_SUBEXPRESSIONS> *reducersW, int idx, const SchemeInteger &scheme) {
-    int u[MAX_U_REAL_VARIABLES];
-    int v[MAX_V_REAL_VARIABLES];
-    int w[MAX_W_REAL_VARIABLES];
+    int u[MAX_MATRIX_ELEMENTS];
+    int v[MAX_MATRIX_ELEMENTS];
+    int w[MAX_RANK];
 
     reducersU[idx].clear();
     reducersV[idx].clear();
