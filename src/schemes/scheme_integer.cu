@@ -906,7 +906,7 @@ __device__ __host__ void SchemeInteger::swapSize(int p1, int p2) {
 /*************************************************** random operators ****************************************************/
 __device__ bool SchemeInteger::tryFlip(curandState &state, bool checkReduce) {
     int size = flips[0].size + flips[1].size + flips[2].size;
-    int indices[MAX_PAIRS];
+    int indices[MAX_PAIRS * 3];
 
     randomPermutation(indices, size, state);
 

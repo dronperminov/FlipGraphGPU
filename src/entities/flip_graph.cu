@@ -73,14 +73,14 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["3x3x14"] = 101;
     n2knownRanks["3x3x15"] = 108;
     n2knownRanks["3x3x16"] = 115;
-    n2knownRanks["3x4x6"] = 57;
+    n2knownRanks["3x4x6"] = 56;
     n2knownRanks["3x4x7"] = 64;
     n2knownRanks["3x4x8"] = 74;
     n2knownRanks["3x4x9"] = 84;
     n2knownRanks["3x4x10"] = 93;
     n2knownRanks["3x4x11"] = 102;
     n2knownRanks["3x4x12"] = 111;
-    n2knownRanks["3x4x13"] = 121;
+    n2knownRanks["3x4x13"] = 120;
     n2knownRanks["3x4x14"] = 128;
     n2knownRanks["3x4x15"] = 138;
     n2knownRanks["3x4x16"] = 148;
@@ -92,9 +92,9 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["3x5x11"] = 128;
     n2knownRanks["3x5x12"] = 140;
     n2knownRanks["3x6x6"] = 85;
-    n2knownRanks["3x6x7"] = 100;
-    n2knownRanks["3x6x8"] = 113;
-    n2knownRanks["3x6x9"] = 127;
+    n2knownRanks["3x6x7"] = 99;
+    n2knownRanks["3x6x8"] = 112;
+    n2knownRanks["3x6x9"] = 126;
     n2knownRanks["3x6x10"] = 140;
     n2knownRanks["3x7x7"] = 115;
     n2knownRanks["3x7x8"] = 128;
@@ -115,7 +115,6 @@ FlipGraph::FlipGraph(int n1, int n2, int n3, int schemesCount, int blockSize, in
     n2knownRanks["4x7x9"] = 187;
     n2knownRanks["5x7x8"] = 206;
     n2knownRanks["5x7x9"] = 231;
-    n2knownRanks["6x6x7"] = 185;
     n2knownRanks["6x6x10"] = 252;
     n2knownRanks["7x7x7"] = 250;
     n2knownRanks["7x7x8"] = 279;
@@ -576,7 +575,7 @@ __global__ void randomWalkKernel(Scheme *schemes, Scheme *schemesBest, int *best
 __global__ void resizeKernel(Scheme *schemes, Scheme *schemesBest, int schemesCount, curandState *states, double resizeProbability) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= schemesCount)
+    if (idx >= schemesCount || curand_uniform(&states[idx]) > resizeProbability)
         return;
 
     Scheme &scheme = schemes[idx];
@@ -592,7 +591,7 @@ __global__ void resizeKernel(Scheme *schemes, Scheme *schemesBest, int schemesCo
         merged |= scheme.tryMerge(schemesBest[index], state);
     }
 
-    if (!merged && curand_uniform(&state) < resizeProbability) {
+    if (!merged) {
         float p = curand_uniform(&state);
         if (p < 0.05) {
             scheme.tryProject(state);
